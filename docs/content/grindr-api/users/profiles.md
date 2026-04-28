@@ -236,9 +236,9 @@ Not to be confused with [HIV status](#hiv-status).
 - 8 — "Otter"
 - 9 — "Poz"
 - 10 — "Rugged"
-- 11 — "Sober"
-- 12 — "Trans"
-- 13 — "Twink"
+- 11 — "Trans"
+- 12 — "Twink"
+- 13 — "Sober"
 
 ## Vaccines
 
