@@ -38,18 +38,17 @@ export async function getV3Cascade(
 			),
 	)
 		.then((res) => res.json())
-		.then((data) => {
-			console.log({ data });
-			return z
+		.then((data) =>
+			z
 				.object({
 					items: z.array(cascadeV3ResponseItemSchema),
-					nextPage: z.number().int().nonnegative(),
+					nextPage: z.number().int().nonnegative().nullable(),
 					shuffled: z.boolean(),
 					hiddenProfiles: z.unknown(),
 					hiddenProfileInfo: z.unknown(),
 				})
-				.parse(data);
-		});
+				.parse(data),
+		);
 }
 
 export type FullGridProfile = {

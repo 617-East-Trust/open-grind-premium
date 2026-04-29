@@ -5,7 +5,6 @@
 		getGrid,
 		resolvePartialBatch,
 		type GridProfile,
-		type FullGridProfile,
 		profileCache,
 	} from "./grid";
 	import { getPreferences } from "$lib/app-data/preferences.svelte";
@@ -19,10 +18,52 @@
 		geohash: string;
 	} = $props();
 
+	// TODO: virtual list
 	let items = $state<GridProfile[]>([]);
 	let partialBatches: { batch: { profileId: number }[] }[] = [];
+	let nextPage: number | null = $state(0);
+	let loadingMore = $state(false);
+	let currentQuery: z.infer<typeof cascadeV3QuerySchema> | null = null;
 
 	const loadingBatches = new Set<number>();
+
+	async function loadMore() {
+		if (loadingMore || !nextPage || !currentQuery) return;
+		loadingMore = true;
+		try {
+			const batchOffset = partialBatches.length;
+			const result = await getGrid({ ...currentQuery, pageNumber: nextPage });
+			for (const item of result.items) {
+				items.push(
+					item.type === "partial"
+						? { ...item, batchIndex: item.batchIndex + batchOffset }
+						: item,
+				);
+			}
+			partialBatches.push(...result.partialBatches);
+			nextPage = result.nextPage;
+		} catch (e) {
+			console.error(e);
+			toast.error("Failed to load more profiles");
+		} finally {
+			loadingMore = false;
+		}
+	}
+
+	function observeSentinel(node: HTMLElement) {
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting) loadMore();
+			},
+			{ rootMargin: "400px" },
+		);
+		observer.observe(node);
+		return {
+			destroy() {
+				observer.disconnect();
+			},
+		};
+	}
 
 	async function loadBatch(batchIndex: number) {
 		if (loadingBatches.has(batchIndex)) return;
@@ -86,7 +127,7 @@
 	async function fetchProfiles() {
 		try {
 			const { gridSearchFilters } = await getPreferences();
-			const result = await getGrid({
+			const query = {
 				nearbyGeoHash: geohash,
 				favorites: gridSearchFilters?.isFavorite || undefined,
 				onlineOnly: gridSearchFilters?.isOnline || undefined,
@@ -145,10 +186,13 @@
 				...(gridSearchFilters?.healthPracticesEnabled && {
 					sexualHealth: gridSearchFilters?.healthPractices,
 				}),
-			} satisfies z.infer<typeof cascadeV3QuerySchema>);
+			} satisfies z.infer<typeof cascadeV3QuerySchema>;
+			currentQuery = query;
+			const result = await getGrid(query);
 			loadingBatches.clear();
 			items = result.items;
 			partialBatches = result.partialBatches;
+			nextPage = result.nextPage;
 		} catch (e) {
 			console.error(e);
 			throw new Error("Failed to fetch profiles");
@@ -182,6 +226,14 @@
 				></div>
 			{/if}
 		{/each}
+		{#if loadingMore}
+			{#each Array.from({ length: 20 })}
+				<div class="aspect-square bg-stone-700 animate-pulse"></div>
+			{/each}
+		{/if}
+		{#if nextPage !== 0}
+			<div class="col-span-full h-0" use:observeSentinel></div>
+		{/if}
 	{:catch error}
 		<p class="col-span-full text-center text-sm text-red-400">
 			{error.message}
