@@ -18,8 +18,13 @@ export default defineConfig({
 
 	title: "Open Grind",
 	description: "Open Grind project documentation and Grindr API reference",
+	head: [["link", { rel: "icon", href: "/logo.svg" }]],
+
 	themeConfig: {
 		// https://vitepress.dev/reference/default-theme-config
+
+		logo: "/logo.svg",
+
 		nav: [
 			{ text: "Home", link: "/" },
 			{ text: "Grindr API", link: "/grindr-api" },
