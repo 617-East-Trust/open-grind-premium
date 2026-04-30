@@ -71,7 +71,6 @@
 			<div class="flex items-center gap-3 text-sm mt-1">
 				<OnlineStatus onlineUntil={onlineUntil ?? null} {seen} />
 				<Distance {distance} />
-				{showDistance}
 			</div>
 			{#if sexualPosition !== null || height !== null || weight !== null || bodyType !== null}
 				<div class="flex items-center gap-3 text-sm mt-2">

@@ -56,7 +56,7 @@
 	let lastScrollY: number = $state(0);
 
 	onMount(() => {
-		expansion.set(window.scrollY > 0 ? 1 : 0, {
+		expansion.set(window.scrollY > 0 ? 0 : 1, {
 			duration: 0,
 		});
 		lastScrollY = window.scrollY;
@@ -69,6 +69,14 @@
 		isFresh: false,
 	});
 
+	let filters: {
+		age: number[] | null;
+		position: number[] | null;
+	} = $state({
+		age: null,
+		position: null,
+	});
+
 	onMount(() => {
 		getPreferences().then(({ gridSearchFilters = defaultFilters }) => {
 			booleanFilters = {
@@ -76,6 +84,10 @@
 				isOnline: gridSearchFilters.isOnline,
 				isRightNow: gridSearchFilters.isRightNow,
 				isFresh: gridSearchFilters.isFresh || false,
+			};
+			filters = {
+				age: gridSearchFilters.age ?? null,
+				position: gridSearchFilters.positions ?? null,
 			};
 		});
 	});
@@ -137,10 +149,18 @@
 		<Button variant="secondary" onclick={() => (openFilters.all = true)}>
 			<SlidersHorizontalIcon />
 		</Button>
-		<Button variant="secondary" onclick={() => (openFilters.age = true)}>
+		<Button
+			variant="secondary"
+			onclick={() => (openFilters.age = true)}
+			class={{ "bg-white hover:bg-neutral-200 text-popover": filters.age !== null }}
+		>
 			Age
 		</Button>
-		<Button variant="secondary" onclick={() => (openFilters.position = true)}>
+		<Button
+			variant="secondary"
+			onclick={() => (openFilters.position = true)}
+			class={{ "bg-white hover:bg-neutral-200 text-popover": filters.position !== null }}
+		>
 			Position
 		</Button>
 		<ToggleGroup.Root

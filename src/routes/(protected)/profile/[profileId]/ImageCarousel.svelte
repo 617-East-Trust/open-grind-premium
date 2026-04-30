@@ -4,6 +4,8 @@
 	import PhotoSwipeLightbox from "photoswipe/lightbox";
 	import "photoswipe/style.css";
 	import toast from "svelte-french-toast";
+	import { format } from "date-fns";
+	import z from "zod";
 
 	let {
 		medias,
@@ -61,58 +63,28 @@
 				}
 			});
 		});
+		lightbox.on("uiRegister", () => {
+			lightbox.pswp?.ui?.registerElement({
+				name: "created-at-label",
+				order: 9,
+				appendTo: "root",
+				onInit(element, pswp) {
+					setTimeout(() => {
+						const { data: createdAt } = z.coerce
+							.number()
+							.int()
+							.safeParse(pswp.currSlide?.data.element?.dataset.createdAt);
+						if (createdAt !== undefined) {
+							element.textContent = format(createdAt, "dd MMMM yyyy");
+						}
+					}, 0);
+				},
+			});
+		});
+
 		lightbox.init();
 		return () => lightbox.destroy();
 	});
-
-	// const mediasLoaded: {
-	// 	url: string;
-	// 	width: number;
-	// 	height: number;
-	// 	metadata: { createdAt?: number; takenOnGrindr?: boolean };
-	// }[] = $state();
-	// $effect(() => {
-	// 	const abortController = new AbortController();
-	// 	let blobUrls = new Set<string>();
-	// 	async function loadMedias(media: typeof medias) {
-	// 		await Promise.all(
-	// 			medias.map(async (media) => {
-	// 				try {
-	// 					const request = await fetch(
-	// 						`https://cdns.grindr.com/images/profile/1024x1024/${media.mediaHash}`,
-	// 						{
-	// 							signal: abortController.signal,
-	// 						},
-	// 					);
-	// 					const blob = await request.blob();
-	// 					if (abortController.signal.aborted) return;
-	// 					const url = URL.createObjectURL(blob);
-	// 					blobUrls.add(url);
-	// 					const img = new Image();
-	// 					img.onload = () => {
-	// 						mediasLoaded.push({
-	// 							url,
-	// 							width: img.naturalWidth,
-	// 							height: img.naturalHeight,
-	// 							metadata: {
-	// 								createdAt: media.createdAt ?? undefined,
-	// 								takenOnGrindr: media.takenOnGrindr ?? undefined,
-	// 							},
-	// 						});
-	// 					};
-	// 					img.src = url;
-	// 				} catch (e) {
-	// 					toast.error("Failed to load profile image");
-	// 				}
-	// 			}),
-	// 		);
-	// 	}
-	// 	loadMedias(medias);
-	// 	return () => {
-	// 		abortController.abort();
-	// 		blobUrls.forEach((url) => URL.revokeObjectURL(url));
-	// 	};
-	// });
 
 	const GAP = 4; //px
 	const PADDING_VERTICAL = 8; //px
@@ -143,10 +115,11 @@
 					(item > 0 && item < medias.length - 1 ? indicatorStretch : 0);
 			}}
 		>
-			{#each medias as { mediaHash }}
+			{#each medias as { mediaHash, createdAt }}
 				<ImageCarouselItem
 					src="https://cdns.grindr.com/images/profile/1024x1024/{mediaHash}"
 					thumb="https://cdns.grindr.com/images/profile/1024x1024/{mediaHash}"
+					{createdAt}
 				/>
 			{/each}
 		</div>
@@ -183,6 +156,10 @@
 	:global {
 		.pswp .pswp__button {
 			display: none;
+		}
+		.pswp .pswp__created-at-label {
+			text-shadow: 1px 1px 3px var(--pswp-icon-color-secondary);
+			@apply absolute bottom-0 left-1/2 -translate-x-1/2 text-white/90 font-medium w-full h-16 flex justify-center items-center bg-linear-to-t from-background/60 pt-4;
 		}
 	}
 </style>
