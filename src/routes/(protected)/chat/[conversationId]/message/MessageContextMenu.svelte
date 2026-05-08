@@ -1,7 +1,7 @@
 <script lang="ts">
 	import toast from "svelte-french-toast";
 	import type { ComponentProps } from "svelte";
-	import { CopyIcon, FireIcon, FlagIcon, TrashIcon } from "phosphor-svelte";
+	import { CopyIcon, FlagIcon, TrashIcon } from "phosphor-svelte";
 	import ContextMenu from "$lib/components/ContextMenu.svelte";
 	import { Button } from "$lib/components/ui/button";
 	import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -9,23 +9,27 @@
 
 	let {
 		textContent,
+		reactionAvailable,
 		...props
 	}: ComponentProps<typeof ContextMenu> & {
+		reactionAvailable?: boolean;
 		textContent?: string;
 	} = $props();
 </script>
 
 <ContextMenu {...props}>
-	<span class="block w-40 -mt-7 text-center text-muted-foreground/70">
-		Double tap to <img
-			src={fireEmoji}
-			alt="Fire Emoji"
-			width="16"
-			height="16"
-			class="inline align-middle"
-		/>
-	</span>
-	<div class="buttons w-40 mt-2">
+	{#if reactionAvailable}
+		<span class="block w-40 -mt-7 mb-2 text-center text-muted-foreground/70">
+			Double tap to <img
+				src={fireEmoji}
+				alt="Fire Emoji"
+				width="16"
+				height="16"
+				class="inline align-middle"
+			/>
+		</span>
+	{/if}
+	<div class="buttons w-40">
 		{#if textContent !== undefined}
 			<Button
 				variant="ghost"

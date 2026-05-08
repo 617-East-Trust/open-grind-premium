@@ -13,7 +13,7 @@
 
 	let flip = $state(false);
 	let flipProgress = new Tween(0, { duration: 500 });
-	let anchor: HTMLElement | undefined = $state();
+	let anchor: HTMLElement | null = $state(null);
 
 	const title = $derived.by(() => {
 		switch (page.status) {

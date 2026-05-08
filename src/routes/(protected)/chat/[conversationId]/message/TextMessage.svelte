@@ -1,23 +1,21 @@
 <script lang="ts">
-	import { getMessageContext } from "./context";
+	import { getMessageContext, getMessageMetaContext } from "./context";
 	import type { TextMessage } from "$lib/model/message";
 
-	let {
-		message,
-		ref = $bindable(),
-		clone,
-	}: {
-		message: TextMessage["body"];
-		ref?: HTMLDivElement;
-		clone?: boolean;
-	} = $props();
+	let { message }: { message: TextMessage["body"] } = $props();
 
 	const { lastInStack, msgOut } = $derived(getMessageContext()());
+	const { clone, setRef, adornments } = $derived(getMessageMetaContext()());
+
+	let el: HTMLDivElement | null = $state(null);
+	$effect(() => {
+		setRef(el ?? null);
+	});
 </script>
 
 <div
 	class={[
-		"py-2 px-3 rounded-xl w-fit text-black shrink-0 relative overflow-visible select-text",
+		"py-2 px-3 rounded-xl w-fit max-w-100 text-black shrink-0 relative overflow-visible select-text",
 		{
 			"bg-message-bubble-in": !msgOut,
 			"ms-3": !msgOut && !clone,
@@ -27,7 +25,7 @@
 			"rounded-ee-none": lastInStack && msgOut,
 		},
 	]}
-	bind:this={ref}
+	bind:this={el}
 >
 	{#if lastInStack}
 		<svg
@@ -51,4 +49,5 @@
 		</svg>
 	{/if}
 	<span class="whitespace-pre-wrap">{message.text}</span>
+	{@render adornments?.()}
 </div>

@@ -31,9 +31,9 @@
 		void onSubmit(geohash);
 	}
 
-	let geoMapPicker: GeoMapPicker | undefined = $state();
+	let geoMapPicker: GeoMapPicker | null = $state(null);
 
-	let pendingCenter: { lat: number; lon: number } | undefined = $state();
+	let pendingCenter: { lat: number; lon: number } | null = $state(null);
 	export function centerAt({ lat, lon }: { lat: number; lon: number }) {
 		if (!geoMapPicker) {
 			pendingCenter = { lat, lon };
@@ -45,7 +45,7 @@
 	$effect(() => {
 		if (pendingCenter && geoMapPicker) {
 			geoMapPicker.centerAt(pendingCenter);
-			pendingCenter = undefined;
+			pendingCenter = null;
 		}
 	});
 </script>

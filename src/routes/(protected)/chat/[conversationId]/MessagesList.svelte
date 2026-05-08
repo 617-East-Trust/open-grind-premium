@@ -10,10 +10,19 @@
 		ourProfileId: number;
 		conversation: ReturnType<typeof getConversation>;
 	} = $props();
+
+	let container: HTMLDivElement | null = $state(null);
+
+	$effect(() => {
+		conversation.then(() => {
+			container?.scrollTo({ top: container.scrollHeight, behavior: "instant" });
+		});
+	});
 </script>
 
 <div
-	class="flex-1 flex flex-col-reverse min-h-0 overflow-auto gap-1 p-2 max-w-full pt-20"
+	class="flex-1 flex flex-col min-h-0 overflow-auto gap-1 p-2 max-w-full pt-20 *:first:mt-auto"
+	bind:this={container}
 >
 	{#await conversation}
 		{#each Array(10)}
@@ -26,7 +35,7 @@
 			/>
 		{/each}
 	{:then { messages }}
-		{#each messages as message (message.messageId)}
+		{#each messages.toReversed() as message (message.messageId)}
 			<Message
 				{message}
 				{ourProfileId}

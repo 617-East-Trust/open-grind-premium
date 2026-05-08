@@ -16,7 +16,7 @@
 		}[];
 	} = $props();
 
-	let gallery: HTMLDivElement | undefined = $state();
+	let gallery: HTMLDivElement | null = $state(null);
 
 	$effect(() => {
 		let lightbox = new PhotoSwipeLightbox({

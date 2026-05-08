@@ -1,16 +1,17 @@
 <script lang="ts">
 	import { tick } from "svelte";
 	import type { ApiResponseMessage } from "$lib/model/message";
+	import { reactToMessage } from "$lib/api/messages";
 	import AlbumMessage from "./AlbumMessage.svelte";
 	import ImageMessage from "./ImageMessage.svelte";
 	import TextMessage from "./TextMessage.svelte";
 	import MessageDateGroup from "./MessageDateGroup.svelte";
 	import UnsupportedMessage from "./UnsupportedMessage.svelte";
 	import MessageTime from "./MessageTime.svelte";
+	import MessageWrapper from "./MessageWrapper.svelte";
 	import { setMessageContext } from "./context";
 	import MessageContextMenu from "./MessageContextMenu.svelte";
-	import toast from "svelte-french-toast";
-	import { reactToMessage } from "$lib/api/messages";
+	import Reaction from "./Reaction.svelte";
 
 	let {
 		message,
@@ -46,7 +47,11 @@
 				width: number;
 				height: number;
 		  } = $state(false);
-	let messageElement: HTMLDivElement | undefined = $state();
+	let messageElement: HTMLElement | null = $state(null);
+
+	function setRef(el: HTMLElement | null) {
+		messageElement = el ?? null;
+	}
 	let inheritedStyles = $state("");
 
 	const INHERITED_PROPS = [
@@ -94,7 +99,7 @@
 		tick().then(() => contextMenu?.showModal());
 	}
 
-	let contextMenu: HTMLDialogElement | undefined = $state();
+	let contextMenu: HTMLDialogElement | null = $state(null);
 
 	async function onReact(reactionId: number) {
 		await reactToMessage({
@@ -105,32 +110,36 @@
 	}
 </script>
 
-{#snippet content(clone?: boolean)}
-	{#if message.type === "Text"}
-		<TextMessage
-			message={message.body}
-			bind:ref={() => messageElement, (el) => !clone && (messageElement = el)}
-			{clone}
-		/>
-	{:else if message.type === "Image" || message.type === "ExpiringImage"}
-		<ImageMessage
-			message={message.body}
-			bind:ref={() => messageElement, (el) => !clone && (messageElement = el)}
-			{clone}
-		/>
-	{:else if message.type === "Album" || message.type === "ExpiringAlbum" || message.type === "ExpiringAlbumV2"}
-		<AlbumMessage
-			message={message.body}
-			bind:ref={() => messageElement, (el) => !clone && (messageElement = el)}
-			{clone}
-		/>
-	{:else}
-		<UnsupportedMessage
-			type={message.type}
-			bind:ref={() => messageElement, (el) => !clone && (messageElement = el)}
-		/>
-	{/if}
+{#snippet adornments()}
+	<div class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 z-5">
+		{#if message.reactions.length > 0}
+			{@const reactionMap = message.reactions.reduce(
+				(m, r) => m.set(r.reactionType, (m.get(r.reactionType) ?? 0) + 1),
+				new Map<number, number>(),
+			)}
+			<div class="flex items-center gap-0.5 mt-1 mr-1">
+				{#each reactionMap.entries() as [type, count]}
+					<Reaction type={Number(type)} {count} />
+				{/each}
+			</div>
+		{/if}
+	</div>
 {/snippet}
+
+{#snippet content(clone?: boolean)}
+	<MessageWrapper {clone} {setRef} {adornments}>
+		{#if message.type === "Text"}
+			<TextMessage message={message.body} />
+		{:else if message.type === "Image" || message.type === "ExpiringImage"}
+			<ImageMessage message={message.body} />
+		{:else if message.type === "Album" || message.type === "ExpiringAlbum" || message.type === "ExpiringAlbumV2"}
+			<AlbumMessage message={message.body} />
+		{:else}
+			<UnsupportedMessage type={message.type} />
+		{/if}
+	</MessageWrapper>
+{/snippet}
+
 <div
 	class={[
 		"flex flex-col gap-0.5 z-1 relative",
@@ -177,5 +186,6 @@
 		onClose={() => (contextMenuOpen = false)}
 		style={inheritedStyles}
 		textContent={message.type === "Text" ? message.body.text : undefined}
+		reactionAvailable={message.reactions.length === 0 && !msgOut}
 	/>
 {/if}

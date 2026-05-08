@@ -15,9 +15,9 @@
 		children?: import("svelte").Snippet;
 	} = $props();
 
-	let contextMenuDialog: HTMLDialogElement | undefined = $state();
-	let contextMenuTrigger: HTMLDivElement | undefined = $state();
-	let contextMenuList: HTMLDivElement | undefined = $state();
+	let contextMenuDialog: HTMLDialogElement | null = $state(null);
+	let contextMenuTrigger: HTMLDivElement | null = $state(null);
+	let contextMenuList: HTMLDivElement | null = $state(null);
 	let contextMenuListPosition = $state({ x: 0, y: 0 });
 
 	$effect(() => {

@@ -1,21 +1,25 @@
 <script lang="ts">
 	import type { ExpiringImageMessage, ImageMessage } from "$lib/model/message";
-	import { getMessageContext } from "./context";
+	import { getMessageContext, getMessageMetaContext } from "./context";
 
 	let {
 		message,
-		ref = $bindable(),
-		clone,
-	}: {
-		message: ImageMessage["body"] | ExpiringImageMessage["body"];
-		ref?: HTMLDivElement;
-		clone?: boolean;
-	} = $props();
+	}: { message: ImageMessage["body"] | ExpiringImageMessage["body"] } =
+		$props();
 
 	const { lastInStack, msgOut } = $derived(getMessageContext()());
+	const { clone, setRef, adornments } = $derived(getMessageMetaContext()());
+
+	let el: HTMLDivElement | null = $state(null);
+	$effect(() => {
+		setRef(el ?? null);
+	});
 </script>
 
-<div class={{ "w-2/5 min-w-35 max-w-60 ms-3": !clone }} bind:this={ref}>
+<div
+	class={["relative", { "w-2/5 min-w-35 max-w-60 ms-3": !clone }]}
+	bind:this={el}
+>
 	<img
 		src={message.url}
 		alt=""
@@ -30,4 +34,5 @@
 			? `${message.width} / ${message.height}`
 			: undefined}
 	/>
+	{@render adornments?.()}
 </div>
