@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from "svelte";
-	import type { ApiResponseMessage, Message } from "$lib/model/message";
+	import type { ApiResponseMessage } from "$lib/model/message";
 	import AlbumMessage from "./AlbumMessage.svelte";
 	import ImageMessage from "./ImageMessage.svelte";
 	import TextMessage from "./TextMessage.svelte";
@@ -10,6 +10,7 @@
 	import { setMessageContext } from "./context";
 	import MessageContextMenu from "./MessageContextMenu.svelte";
 	import toast from "svelte-french-toast";
+	import { reactToMessage } from "$lib/api/messages";
 
 	let {
 		message,
@@ -95,8 +96,12 @@
 
 	let contextMenu: HTMLDialogElement | undefined = $state();
 
-	function onReact(reactionId: number) {
-		toast.error("TODO: Reacting to messages not implemented yet");
+	async function onReact(reactionId: number) {
+		await reactToMessage({
+			conversationId: message.conversationId,
+			messageId: message.messageId,
+			reactionId,
+		});
 	}
 </script>
 

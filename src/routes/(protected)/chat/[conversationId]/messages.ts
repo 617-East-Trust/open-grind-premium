@@ -1,12 +1,12 @@
-import { getConversationMessages } from "$lib/api/conversation";
-import type { Message } from "$lib/model/message";
+import { getConversationMessages } from "$lib/api/messages";
+import type { ApiResponseMessage } from "$lib/model/message";
 
-type StackedMessage = Message & {
+type StackedMessage = ApiResponseMessage & {
 	indexInStack: number;
 	stackLength: number;
 };
 
-export function getStackedMessages<T extends Message>({
+export function getStackedMessages<T extends ApiResponseMessage>({
 	messages,
 	ourProfileId,
 }: {
@@ -26,11 +26,11 @@ export function getStackedMessages<T extends Message>({
 		if (stack) {
 			const stackMessages = stack.messages;
 			stackedMessages.push(
-				...stackMessages.map((msg, i, arr) => ({
+				...(stackMessages.map((msg, i, arr) => ({
 					...msg,
 					indexInStack: arr.length - 1 - i,
 					stackLength: arr.length,
-				})) as (T & StackedMessage)[],
+				})) as (T & StackedMessage)[]),
 			);
 			stack = undefined;
 		}
@@ -55,11 +55,11 @@ export function getStackedMessages<T extends Message>({
 	return stackedMessages;
 }
 
-type GroupedMessage = Message & {
+type GroupedMessage = ApiResponseMessage & {
 	dayStart?: number;
 };
 
-export function groupMessagesByDate<T extends Message>({
+export function groupMessagesByDate<T extends ApiResponseMessage>({
 	messages,
 }: {
 	messages: T[];

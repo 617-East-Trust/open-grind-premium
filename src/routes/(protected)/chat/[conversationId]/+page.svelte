@@ -6,7 +6,7 @@
 	import { Skeleton } from "$lib/components/ui/skeleton";
 	import ProgressiveBlur from "$lib/components/ProgressiveBlur.svelte";
 	import type { Message as MessageType } from "$lib/model/message";
-	import { sendMessage } from "$lib/api/conversation";
+	import { sendMessage } from "$lib/api/messages";
 	import { getConversation } from "./messages";
 	import MessagesList from "./MessagesList.svelte";
 	import MessageComposer from "./MessageComposer.svelte";
