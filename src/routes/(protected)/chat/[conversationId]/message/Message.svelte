@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from "svelte";
-	import type { Message } from "$lib/model/message";
+	import type { ApiResponseMessage, Message } from "$lib/model/message";
 	import AlbumMessage from "./AlbumMessage.svelte";
 	import ImageMessage from "./ImageMessage.svelte";
 	import TextMessage from "./TextMessage.svelte";
@@ -18,7 +18,7 @@
 		stackLength,
 		dayStart,
 	}: {
-		message: Message;
+		message: ApiResponseMessage;
 		ourProfileId: number;
 		indexInStack: number;
 		stackLength: number;
@@ -130,8 +130,6 @@
 		"flex flex-col gap-0.5 z-1 relative",
 		{
 			"mt-3": firstInStack,
-			"pe-auto": !msgOut,
-			"ps-auto": msgOut,
 		},
 	]}
 >
@@ -139,6 +137,7 @@
 		<MessageDateGroup {dayStart} />
 	{/if}
 	<div
+		class={["message-container", { "*:me-auto": !msgOut, "*:ms-auto": msgOut }]}
 		role="button"
 		tabindex="0"
 		aria-label="Message"

@@ -8,21 +8,48 @@
 	import { getConversation } from "./messages";
 	import MessagesList from "./MessagesList.svelte";
 	import MessageComposer from "./MessageComposer.svelte";
+	import { fetchRest } from "$lib/api";
+	import type { Message as MessageType } from "$lib/model/message";
 
 	let { data }: import("./$types").PageProps = $props();
 
-	if (page.params.conversationId === undefined) {
-		throw new Error("conversationId is required");
-	}
-
 	const ourProfileId = $derived(data.profileId);
 
-	let conversation = $derived(
-		getConversation({
+	async function fetchConversation() {
+		if (page.params.conversationId === undefined) {
+			throw new Error("conversationId is required");
+		}
+		return getConversation({
 			conversationId: page.params.conversationId,
 			ourProfileId,
-		}),
-	);
+		});
+	}
+
+	let conversation = $derived(fetchConversation());
+
+	async function onSend({ text }: { text: string }) {
+		const {
+			profile: { profileId },
+		} = await conversation;
+		let message: MessageType = {
+			type: "Text",
+			body: {
+				text,
+			},
+		};
+		await fetchRest("/v4/chat/message/send", {
+			method: "POST",
+			body: {
+				type: message.type,
+				target: {
+					type: "Direct",
+					targetId: profileId,
+				},
+				body: message.body,
+			},
+		});
+		conversation = fetchConversation(); // TODO: websockets
+	}
 </script>
 
 <ProgressiveBlur
@@ -98,5 +125,5 @@
 </ProgressiveBlur>
 <Card.Content class="flex flex-col flex-1 pb-2 px-0 max-h-full min-h-0">
 	<MessagesList {ourProfileId} {conversation} />
-	<MessageComposer />
+	<MessageComposer {onSend} />
 </Card.Content>

@@ -4,6 +4,11 @@ import { unixTimestampMsSchema } from "$lib/model/types";
 import z from "zod";
 
 const messageBaseSchema = z.object({
+	type: z.string(),
+	body: z.unknown(),
+});
+
+export const apiResponseMessageOverlaySchema = z.object({
 	messageId: z.string(),
 	conversationId: z.string(),
 	senderId: z.number().int().nonnegative(),
@@ -15,8 +20,6 @@ const messageBaseSchema = z.object({
 			reactionType: z.number().int().nonnegative(),
 		}),
 	),
-	type: z.string(),
-	body: z.unknown(),
 	// replyToMessage: z.unknown().nullable(),
 	// dynamic: z.boolean(),
 	// chat1Type: z.string(),
@@ -86,4 +89,10 @@ export const messageSchema = z.discriminatedUnion("type", [
 	expiringImageMessageSchema,
 ]);
 
+export const apiResponseMessageSchema = z.intersection(
+	messageSchema,
+	apiResponseMessageOverlaySchema,
+);
+
 export type Message = z.infer<typeof messageSchema>;
+export type ApiResponseMessage = z.infer<typeof apiResponseMessageSchema>;

@@ -1,7 +1,7 @@
 import z from "zod";
 import { fetchRest } from "$lib/api";
 import { fullConversationSchema } from "$lib/model/conversation";
-import { messageSchema } from "$lib/model/message";
+import { apiResponseMessageSchema } from "$lib/model/message";
 
 export async function getConversations(page: number = 1) {
 	const conversations = await fetchRest(
@@ -34,7 +34,7 @@ export async function getConversationMessages(conversationId: string) {
 		.then((res) =>
 			z
 				.object({
-					messages: z.array(messageSchema),
+					messages: z.array(apiResponseMessageSchema),
 					profile: z.object({
 						distance: z.number().nullable(),
 						mediaHash: z.string().nullable(),

@@ -1,18 +1,27 @@
 <script lang="ts">
+	import toast from "svelte-french-toast";
+	import { MicrophoneIcon, PaperPlaneRightIcon } from "phosphor-svelte";
 	import { Button } from "$lib/components/ui/button";
 	import { Textarea } from "$lib/components/ui/textarea";
-	import { MicrophoneIcon, PaperPlaneRightIcon } from "phosphor-svelte";
-	import toast from "svelte-french-toast";
 	import { expoOut } from "svelte/easing";
 	import { fade } from "svelte/transition";
+	import { fetchRest } from "$lib/api";
+
+	let { onSend }: { onSend: (params: { text: string }) => Promise<void> } =
+		$props();
 
 	let textContent = $state("");
 
 	async function onSubmit() {
 		const text = textContent.trim();
 		if (text === "") return;
-
-		textContent = "";
+		try {
+			await onSend({ text });
+			textContent = "";
+		} catch (e) {
+			console.error(e);
+			toast.error("Failed to send message");
+		}
 	}
 </script>
 
