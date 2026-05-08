@@ -9,6 +9,7 @@
 	import MessageTime from "./MessageTime.svelte";
 	import { setMessageContext } from "./context";
 	import MessageContextMenu from "./MessageContextMenu.svelte";
+	import toast from "svelte-french-toast";
 
 	let {
 		message,
@@ -93,6 +94,10 @@
 	}
 
 	let contextMenu: HTMLDialogElement | undefined = $state();
+
+	function onReact(reactionId: number) {
+		toast.error("TODO: Reacting to messages not implemented yet");
+	}
 </script>
 
 {#snippet content(clone?: boolean)}
@@ -137,7 +142,10 @@
 		role="button"
 		tabindex="0"
 		aria-label="Message"
-		onclick={() => {}}
+		ondblclick={(e) => {
+			e.preventDefault();
+			onReact(1);
+		}}
 		onkeydown={(e) => {
 			if (e.key === "Enter" || e.key === " ") {
 				if (e.key === " ") e.preventDefault();

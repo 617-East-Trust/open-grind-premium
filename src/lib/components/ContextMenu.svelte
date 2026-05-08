@@ -24,7 +24,7 @@
 		if (!contextMenuTrigger || !contextMenuList) return;
 		computePosition(contextMenuTrigger, contextMenuList, {
 			placement: "right-start",
-			middleware: [offset(6), flip(), shift()],
+			middleware: [offset(8), flip(), shift()],
 			strategy: "fixed",
 		}).then(({ x, y }) => {
 			contextMenuListPosition = { x, y };
@@ -73,7 +73,7 @@
 	</div>
 	<div
 		bind:this={contextMenuList}
-		class="fixed bg-black/80 w-40 rounded-xl p-1 flex flex-col *:justify-start *:active:translate-y-0!"
+		class="fixed flex flex-col"
 		style:left="{contextMenuListPosition.x}px"
 		style:top="{contextMenuListPosition.y}px"
 	>

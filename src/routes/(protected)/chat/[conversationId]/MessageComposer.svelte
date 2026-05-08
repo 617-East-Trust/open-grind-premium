@@ -2,6 +2,7 @@
 	import { Button } from "$lib/components/ui/button";
 	import { Textarea } from "$lib/components/ui/textarea";
 	import { MicrophoneIcon, PaperPlaneRightIcon } from "phosphor-svelte";
+	import toast from "svelte-french-toast";
 	import { expoOut } from "svelte/easing";
 	import { fade } from "svelte/transition";
 
@@ -40,6 +41,9 @@
 				variant="ghost"
 				size="icon"
 				class="size-full cursor-pointer p-2"
+				onclick={() => {
+					toast.error("TODO: Voice messages not implemented yet");
+				}}
 			>
 				<MicrophoneIcon
 					weight="fill"
@@ -55,6 +59,9 @@
 				variant="ghost"
 				size="icon"
 				class="size-full cursor-pointer p-2"
+				onclick={() => {
+					onSubmit();
+				}}
 			>
 				<PaperPlaneRightIcon
 					weight="fill"
