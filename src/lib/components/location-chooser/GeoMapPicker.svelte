@@ -69,7 +69,7 @@
 
 <div class="w-[inherit] h-[inherit] relative">
 	<Map
-		options={{ center: [51.505, -0.09], zoom: 13, attributionControl: false }}
+		options={{ center: [40.42267869390329, -3.697633348267032], zoom: 2, attributionControl: false }}
 		bind:instance={map}
 	>
 		<TileLayer
