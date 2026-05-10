@@ -78,6 +78,9 @@ export async function fetchRest(
 		const packed = await invoke("request", payload).then((res) =>
 			z.instanceof(ArrayBuffer).parse(res),
 		);
+		if (options.abortController?.signal.aborted) {
+			throw new Error("Request aborted");
+		}
 		const decoded = decode(packed);
 		const { status, body: responseBody } = z
 			.object({ status: z.number(), body: z.instanceof(Uint8Array) })
@@ -88,10 +91,19 @@ export async function fetchRest(
 				return responseBody;
 			},
 			text() {
-				return new TextDecoder().decode(responseBody);
+				return new TextDecoder().decode(this.bytes());
 			},
 			json() {
-				return JSON.parse(new TextDecoder().decode(responseBody));
+				return JSON.parse(this.text());
+			},
+			jsonParsed<TSchema extends z.ZodType>(schema: TSchema) {
+				const data = this.json();
+				return parseApiResponse({
+					schema,
+					data,
+					path,
+					method: options.method || "GET",
+				});
 			},
 		};
 	} catch (error) {
@@ -104,4 +116,28 @@ export async function fetchRest(
 		}
 		throw error;
 	}
+}
+
+export function parseApiResponse<TSchema extends z.ZodType>(
+	options: {
+		schema: TSchema;
+		data: unknown;
+		path: string;
+		method?: string;
+	},
+): z.infer<TSchema> {
+	const parsed = options.schema.safeParse(options.data);
+	if (parsed.success) {
+		return parsed.data;
+	}
+
+	console.error("API response schema validation failed", {
+		path: options.path,
+		method: options.method ?? "GET",
+		schema: options.schema.meta()?.title,
+		issues: parsed.error.issues,
+		response: options.data,
+	});
+
+	throw parsed.error;
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ChatCircleIcon } from "phosphor-svelte";
 	import { page } from "$app/state";
 	import { getProfile } from "$lib/api/profile";
 	import { Skeleton } from "$lib/components/ui/skeleton";
@@ -20,8 +21,18 @@
 	import HivStatus from "./HivStatus.svelte";
 	import LastTested from "./LastTested.svelte";
 	import HealthPractices from "./HealthPractices.svelte";
+	import Button from "$lib/components/ui/button/button.svelte";
 
-	const profile = $derived(getProfile(Number(page.params.profileId)));
+	let { data }: import("./$types").PageProps = $props();
+
+	const profileId = $derived(Number(page.params.profileId));
+	const ourProfileId = $derived(data.ourProfileId);
+	const isOurProfile = $derived(profileId === ourProfileId);
+	const conversationId = $derived(
+		[profileId, ourProfileId].toSorted().join(":"),
+	);
+
+	const profile = $derived(getProfile(profileId));
 </script>
 
 <div class="flex">
@@ -57,6 +68,13 @@
 				medias,
 			} = profile}
 			<ImageCarousel {medias} />
+			{#if !isOurProfile}
+				<nav class="absolute -translate-y-1/2 right-2">
+					<Button size="icon-lg" class="size-14" href="/chat/{conversationId}">
+						<ChatCircleIcon weight="fill" class="size-8" />
+					</Button>
+				</nav>
+			{/if}
 			<div class="flex flex-col p-4 pb-12">
 				<h1 class="text-2xl wrap-break-word">
 					{#if displayName !== null}

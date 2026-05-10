@@ -14,8 +14,7 @@
 	import { Input } from "$lib/components/ui/input";
 	import Spinner from "$lib/components/ui/spinner/spinner.svelte";
 	import Alert from "$lib/components/ui/alert/alert.svelte";
-	import { fetchRest } from "$lib/api";
-	import z from "zod";
+	import { getPlaces } from "$lib/api/places";
 
 	let {
 		pinPos = $bindable(),
@@ -43,30 +42,7 @@
 		try {
 			let query = searchQuery.trim();
 			if (!query) return;
-			const abortController = new AbortController();
-			const response = await fetchRest(
-				"/v3/places/search?" +
-					new URLSearchParams({
-						placeName: query,
-					}),
-				{ abortController },
-			)
-				.then((res) => res.json())
-				.then((data) =>
-					z
-						.object({
-							places: z.array(
-								z.object({
-									name: z.string(),
-									address: z.string().nullable(),
-									lat: z.number(),
-									lon: z.number(),
-									importance: z.number(),
-								}),
-							),
-						})
-						.parse(data),
-				);
+			const response = await getPlaces({ query });
 			return response;
 		} catch (e) {
 			console.error(e);
@@ -93,7 +69,7 @@
 
 <div class="w-[inherit] h-[inherit] relative">
 	<Map
-		options={{ center: [51.505, -0.09], zoom: 13, attributionControl: false }}
+		options={{ center: [40.42267869390329, -3.697633348267032], zoom: 2, attributionControl: false }}
 		bind:instance={map}
 	>
 		<TileLayer

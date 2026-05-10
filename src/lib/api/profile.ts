@@ -1,6 +1,16 @@
 import z from "zod";
 import { fetchRest } from "$lib/api";
-import { profileSchema, type Profile } from "$lib/model/profile";
+import {
+	profileRightNowSchema,
+	profileSchema,
+	profileShortSchema,
+	type Profile,
+} from "$lib/model/profile";
+import { mediaHashPublicSchema } from "$lib/model/media";
+
+const profileResponseSchema = z.object({
+	profiles: z.array(profileSchema).length(1),
+});
 
 const profilesCache = new Map<
 	number,
@@ -11,15 +21,54 @@ export async function getProfile(profileId: number) {
 	if (cached && Date.now() - cached.updatedAt < 1000 * 60) {
 		return cached.profile;
 	}
-	const profile = await fetchRest("/v7/profiles/" + profileId, {
-		method: "GET",
-	})
-		.then((res) => res.json())
-		.then((res) => {
-			console.log(res);
-			return z.object({ profiles: z.array(profileSchema).length(1) }).parse(res)
-				.profiles[0];
-		});
+	const profile = (
+		await fetchRest(`/v7/profiles/${profileId}`, {
+			method: "GET",
+		}).then((res) => res.jsonParsed(profileResponseSchema))
+	).profiles[0];
 	profilesCache.set(profileId, { profile, updatedAt: Date.now() });
 	return profile;
+}
+
+const getProfilesResponseSchema = z.object({
+	profiles: z.array(
+		z.object({
+			...profileShortSchema.shape,
+			...profileRightNowSchema.shape,
+		}),
+	),
+});
+
+export async function getProfiles(
+	profileIds: number[],
+): Promise<z.infer<typeof getProfilesResponseSchema>["profiles"]> {
+	if (profileIds.length === 0) return [];
+	return await fetchRest("/v3/profiles", {
+		method: "POST",
+		body: {
+			targetProfileIds: profileIds,
+		},
+	}).then((res) => res.jsonParsed(getProfilesResponseSchema).profiles);
+}
+
+export async function getMyProfile() {
+	return await fetchRest("/v4/me/profile").then(
+		(res) => res.jsonParsed(getProfilesResponseSchema).profiles[0],
+	);
+}
+
+export async function getProfileUploadedPhotos() {
+	return await fetchRest("/v3.1/me/profile/images").then((res) =>
+		res.jsonParsed(
+			z.object({
+				medias: z.array(
+					z.object({
+						mediaHash: mediaHashPublicSchema,
+						type: z.number().int(),
+						state: z.number().int(),
+					}),
+				),
+			}),
+		),
+	);
 }

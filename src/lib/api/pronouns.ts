@@ -5,9 +5,9 @@ import { fetchRest } from "$lib/api";
 let cachedPronouns: z.infer<typeof pronounsSchema> | null = null;
 export async function fetchPronouns() {
 	if (cachedPronouns) return cachedPronouns;
-	const pronouns = await fetchRest("/v1/pronouns")
-		.then((data) => data.json())
-		.then((data) => pronounsSchema.parse(data));
+	const pronouns = await fetchRest("/v1/pronouns").then((res) =>
+		res.jsonParsed(pronounsSchema),
+	);
 	cachedPronouns = pronouns;
 	return pronouns;
 }

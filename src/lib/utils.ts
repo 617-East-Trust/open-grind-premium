@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { format } from "date-fns";
 import { twMerge } from "tailwind-merge";
 import z from "zod";
 
@@ -76,4 +77,16 @@ export function urlSearchParamsCodec<T extends z.ZodObject>(schema: T) {
 		decode: (value: URLSearchParams) => z.input<T>;
 		encode: (value: z.input<T>) => URLSearchParams;
 	});
+}
+
+export function formatDistanceCustom(date: number) {
+	const diff = Date.now() - date;
+	if (diff < 60 * 1000) return "Just now";
+	else if (diff < 60 * 60 * 1000)
+		return `${Math.floor(diff / (60 * 1000))} mins`;
+	else if (diff < 24 * 60 * 60 * 1000)
+		return `${Math.floor(diff / (60 * 60 * 1000))} hr`;
+	else if (diff < 2 * 24 * 60 * 60 * 1000) return `Yesterday`;
+	else if (diff < 7 * 24 * 60 * 60 * 1000) return format(date, "EEEE");
+	else return format(date, "MMM d");
 }

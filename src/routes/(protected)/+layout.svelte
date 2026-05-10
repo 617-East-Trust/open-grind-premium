@@ -1,8 +1,8 @@
 <script lang="ts">
 	import NavBar from "$lib/components/NavBar.svelte";
 
-	let { children }: { children?: import("svelte").Snippet } = $props();
+	let { children, data }: import("./$types").LayoutProps = $props();
 </script>
 
 {@render children?.()}
-<NavBar />
+<NavBar ourProfileId={data.ourProfileId} />

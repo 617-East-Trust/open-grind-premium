@@ -350,7 +350,7 @@ export const profileRightNowSchema = z.object({
 export const profileExtraFields = z.object({
 	nsfw: acceptNSFWPicsSchema.nullable(),
 	verifiedInstagramId: z.string().nullable(),
-	isBlockable: z.boolean(),
+	isBlockable: z.boolean().nullable(),
 	showTribes: z.boolean(),
 	showPosition: z.boolean(),
 });

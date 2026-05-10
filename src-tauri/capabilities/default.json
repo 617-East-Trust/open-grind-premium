@@ -36,6 +36,8 @@
 		"geolocation:allow-check-permissions",
 		"geolocation:allow-request-permissions",
 		"geolocation:allow-get-current-position",
-		"os:default"
+		"os:default",
+		"clipboard-manager:default",
+		"clipboard-manager:allow-write-text"
 	]
 }

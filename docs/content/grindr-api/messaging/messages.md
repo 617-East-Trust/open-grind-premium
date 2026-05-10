@@ -242,7 +242,7 @@ Query (optional):
 
 Response:
 
-- `lastReadTimestamp` — unix timestamp in milliseconds
+- `lastReadTimestamp` — unix timestamp in milliseconds or `null`
 - `messages` — array of [Message](#message)
 - `metadata` — nested object
   - `translate` — boolean

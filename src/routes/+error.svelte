@@ -9,10 +9,11 @@
 	import ExclamationMarkIcon from "phosphor-svelte/lib/ExclamationMarkIcon";
 	import ArrowUpRightIcon from "phosphor-svelte/lib/ArrowUpRightIcon";
 	import clippy from "$lib/assets/clippy.avif";
+	import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 	let flip = $state(false);
 	let flipProgress = new Tween(0, { duration: 500 });
-	let anchor: HTMLElement | undefined = $state();
+	let anchor: HTMLElement | null = $state(null);
 
 	const title = $derived.by(() => {
 		switch (page.status) {
@@ -119,10 +120,8 @@
 					<Button
 						variant="outline"
 						onclick={() => {
-							import("copy-to-clipboard").then(({ default: copy }) => {
-								copy(page.error?.message || "No error message available");
-								toast.success("Error message copied to clipboard");
-							});
+							writeText(page.error?.message || "No error message available");
+							toast.success("Error message copied to clipboard");
 						}}
 					>
 						Copy error

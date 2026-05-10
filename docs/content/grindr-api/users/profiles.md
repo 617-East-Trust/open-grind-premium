@@ -70,7 +70,7 @@ When used in query, stringified as follows: `y2,x1,x2,y1`.
 
 - `nsfw` — integer or `null`, see [Accept NSFW pics](#accept-nsfw-pics)
 - `verifiedInstagramId` — string or `null`
-- `isBlockable` — boolean
+- `isBlockable` — boolean or `null`
 - `showTribes` — boolean
 - `showPosition` — boolean
 

@@ -1,0 +1,50 @@
+import { unixTimestampMsSchema } from "$lib/model/types";
+import z from "zod";
+
+export const albumPreviewSchema = z.object({
+	albumId: z.number().int(),
+	hasUnseenContent: z.boolean(),
+});
+
+export const albumMinSchema = albumPreviewSchema.extend({
+	albumName: z.null(),
+	profileId: z.number().int(),
+	albumViewable: z.boolean(),
+});
+
+export const albumDetailsSchema = z.object({
+	sharedCount: z.number().int(),
+	createdAt: z.iso.datetime({ local: true }),
+	updatedAt: z.iso.datetime({ local: true }),
+});
+
+export const AlbumExpiration = {
+	INDEFINITE: 0,
+	ONCE: 1,
+	TEN_MINUTES: 2,
+	ONE_HOUR: 3,
+	ONE_DAY: 4,
+} as const;
+
+export const albumExpirationTypeSchema = z.enum(Object.keys(AlbumExpiration));
+
+export type AlbumExpirationType = z.infer<typeof albumExpirationTypeSchema>;
+
+export const albumExpirationSchema = z.object({
+	expiresAt: unixTimestampMsSchema.nullable(),
+	expirationType: albumExpirationTypeSchema.optional(),
+});
+
+export const albumContentMin = z.object({
+	contentId: z.number().int(),
+	contentType: z.string(),
+	coverUrl: z.url(),
+	statusId: z.number().int(),
+});
+
+export const albumContentSchema = albumContentMin.extend({
+	thumbUrl: z.url(),
+	url: z.url().or(z.literal("")),
+	processing: z.boolean().nullable(),
+	rejectionId: z.unknown().nullable(),
+});

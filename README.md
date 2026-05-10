@@ -1,12 +1,14 @@
 # Open Grind
 
+[![Matrix space](https://img.shields.io/matrix/opengrind:opengrind.org?server_fqdn=matrix.opengrind.org&fetchMode=summary&label=matrix%20space)](https://matrix.to/#/#opengrind:opengrind.org) [![chat](https://img.shields.io/matrix/general:opengrind.org?server_fqdn=matrix.opengrind.org&fetchMode=summary&label=chat)](https://matrix.to/#/#general:opengrind.org) [![Announcements](https://img.shields.io/matrix/announcements:opengrind.org?server_fqdn=matrix.opengrind.org&fetchMode=summary&label=announcements)](https://matrix.to/#/#announcements:opengrind.org)
+
 Unofficial Grindr client. Crossplatform, free, libre, ad-free, tracker-free, privacy-centered and community-driven.
 
-Work in progress. See [ROADMAP.md](./ROADMAP.md).
+Status as of 7th May, 2026: **🚧 MVP 🚧**, only the most basic features are implemented. [More information...](https://git.opengrind.org/open-grind/open-grind/milestones)
 
-<!-- ## Usage
+## Usage
 
-Download the latest version from [releases](https://git.opengrind.org/open-grind/open-grind/releases). -->
+Download the latest version from [releases](https://git.opengrind.org/open-grind/open-grind/releases).
 
 ## Development
 

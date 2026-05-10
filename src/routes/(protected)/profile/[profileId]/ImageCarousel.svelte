@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { UserIcon } from "phosphor-svelte";
-	import ImageCarouselItem from "./ImageCarouselItem.svelte";
-	import PhotoSwipeLightbox from "photoswipe/lightbox";
 	import "photoswipe/style.css";
-	import toast from "svelte-french-toast";
-	import { format } from "date-fns";
 	import z from "zod";
+	import { format } from "date-fns";
+	import { UserIcon } from "phosphor-svelte";
+	import PhotoSwipeLightbox from "photoswipe/lightbox";
+	import ImageCarouselItem from "./ImageCarouselItem.svelte";
 
 	let {
 		medias,
@@ -17,7 +16,7 @@
 		}[];
 	} = $props();
 
-	let gallery: HTMLDivElement;
+	let gallery: HTMLDivElement | null = $state(null);
 
 	$effect(() => {
 		let lightbox = new PhotoSwipeLightbox({
@@ -34,15 +33,8 @@
 			}
 			return itemData;
 		});
-		// lightbox.addFilter("thumbBounds", (thumbBounds, itemData) => {
-		// 	const img = itemData.element?.querySelector("img");
-		// 	if (!img) return thumbBounds;
-		// 	const rect = img.getBoundingClientRect();
-		// 	return { x: rect.left, y: rect.top, w: rect.width };
-		// });
-
 		lightbox.on("openingAnimationStart", () => {
-			gallery.querySelectorAll(".item").forEach((item) => {
+			gallery?.querySelectorAll(".item").forEach((item) => {
 				if (item instanceof HTMLElement) {
 					item.style.visibility = "hidden";
 				}
@@ -50,14 +42,14 @@
 		});
 
 		lightbox.on("change", () => {
-			gallery.scrollTo({
+			gallery?.scrollTo({
 				top: lightbox.pswp?.currSlide?.data.element?.offsetTop ?? 0,
 				behavior: "instant",
 			});
 		});
 
 		lightbox.on("destroy", () => {
-			gallery.querySelectorAll(".item").forEach((item) => {
+			gallery?.querySelectorAll(".item").forEach((item) => {
 				if (item instanceof HTMLElement) {
 					item.style.visibility = "visible";
 				}
@@ -101,6 +93,7 @@
 			class="size-full max-h-[inherit] flex flex-col snap-y snap-mandatory *:snap-center overflow-auto carousel relative"
 			bind:this={gallery}
 			onscroll={() => {
+				if (!gallery) return;
 				const item = gallery.scrollTop / gallery.clientHeight;
 				const frac = item % 1;
 				const stretch = Math.min(frac, 1 - frac);

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { expoOut } from "svelte/easing";
 	import { type TransitionConfig } from "svelte/transition";
-	import { fetchGenders } from "$lib/api/genders";
+	import { getGenders } from "$lib/api/genders";
 	import { Spinner } from "$lib/components/ui/spinner";
 	import * as ToggleGroup from "$lib/components/ui/toggle-group";
 	import Button from "$lib/components/ui/button/button.svelte";
@@ -16,7 +16,7 @@
 	} = $props();
 
 	let genders = $state(
-		fetchGenders().then((genders) =>
+		getGenders().then((genders) =>
 			genders
 				.filter((g) => g.displayGroup > 0)
 				.sort((a, b) => (a.sortFilter ?? 1) - (b.sortFilter ?? 1)),
