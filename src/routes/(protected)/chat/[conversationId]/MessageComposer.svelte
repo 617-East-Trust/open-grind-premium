@@ -67,9 +67,6 @@
 				variant="ghost"
 				size="icon"
 				class="size-full cursor-pointer p-2"
-				onclick={() => {
-					onSubmit();
-				}}
 			>
 				<PaperPlaneRightIcon
 					weight="fill"
