@@ -2,7 +2,7 @@
 	import { page } from "$app/state";
 	import * as Card from "$lib/components/ui/card";
 	import type { Message as MessageType } from "$lib/model/message";
-	import { sendMessage } from "$lib/api/messages";
+	import { markConversationAsRead, sendMessage } from "$lib/api/messages";
 	import { getConversation } from "./messages";
 	import MessagesList from "./MessagesList.svelte";
 	import MessageComposer from "./MessageComposer.svelte";
@@ -18,9 +18,15 @@
 	const conversationId = $derived(page.params.conversationId);
 
 	async function fetchConversation() {
-		return getConversation({
+		const conversation = await getConversation({
 			conversationId,
 		});
+		markConversationAsRead({
+			conversationId,
+		}).catch((error) =>
+			console.error("Failed to mark conversation as read", error),
+		);
+		return conversation;
 	}
 
 	async function onSend({ text }: { text: string }) {
