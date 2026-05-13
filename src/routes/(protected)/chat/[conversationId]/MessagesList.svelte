@@ -123,6 +123,9 @@
 				isRead={isOut && message.messageId === messages[0].messageId
 					? conversationState.lastReadTimestamp === message.timestamp
 					: null}
+				onVisible={!isOut
+					? () => conversationState.reportRead(message)
+					: undefined}
 				onDelete={async () => {
 					let revert: (() => void) | undefined;
 					try {

@@ -74,10 +74,17 @@ class ConversationsState {
 		const entry = this.entries.find(
 			(e) => e.data.conversationId === conversationId,
 		);
-		if (entry) entry.data.unreadCount = 0;
-		markConversationAsRead({ conversationId }).catch((error) =>
-			console.error("Failed to mark conversation as read", error),
-		);
+		if (entry) {
+			const unreadCount = entry.data.unreadCount;
+			if (unreadCount > 0) {
+				entry.data.unreadCount = 0;
+				markConversationAsRead({ conversationId }).catch((error) => {
+					console.error("Failed to mark conversation as read", error);
+					toast.error("Failed to mark conversation as read");
+					entry.data.unreadCount = unreadCount;
+				});
+			}
+		}
 	}
 
 	updatePreview({

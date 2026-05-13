@@ -24,6 +24,7 @@
 		onReact,
 		onDelete,
 		isRead,
+		onVisible,
 	}: {
 		message: ApiResponseMessage;
 		isOut: boolean;
@@ -34,6 +35,7 @@
 		onReact?: (reactionId: number) => void;
 		onDelete?: () => void;
 		isRead: boolean | null;
+		onVisible?: () => void;
 	} = $props();
 
 	const firstInStack = $derived(indexInStack === 0);
@@ -110,6 +112,25 @@
 	}
 
 	let contextMenu: HTMLDialogElement | null = $state(null);
+
+	function observeRead(node: HTMLElement) {
+		if (!onVisible) return {};
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting) {
+					onVisible();
+					observer.disconnect();
+				}
+			},
+			{ threshold: 0 },
+		);
+		observer.observe(node);
+		return {
+			destroy() {
+				observer.disconnect();
+			},
+		};
+	}
 </script>
 
 {#snippet adornments()}
@@ -190,6 +211,7 @@
 			onContextMenu();
 		}}
 		style:visibility={contextMenuOpen ? "hidden" : undefined}
+		use:observeRead
 	>
 		{@render content()}
 	</div>

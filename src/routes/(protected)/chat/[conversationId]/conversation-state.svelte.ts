@@ -1,4 +1,5 @@
 import { sendMessage, reactToMessage } from "$lib/api/messages";
+import { markConversationAsRead } from "$lib/api/conversation";
 import type {
 	ApiResponseMessage,
 	Message as MessageType,
@@ -6,6 +7,8 @@ import type {
 import { conversations } from "../conversations.svelte";
 import { getConversation } from "./messages";
 import toast from "svelte-french-toast";
+import z from "zod";
+import { getPreferences } from "$lib/app-data/preferences.svelte";
 
 export type OptimisticMessage = ApiResponseMessage & {
 	status: "sent" | "pending" | "error";
@@ -25,9 +28,18 @@ export class ConversationState {
 	readonly conversationId: string;
 	readonly ourProfileId: number;
 
+	#readQueue: { messageId: string; timestamp: number }[] = [];
+	#readTimer: ReturnType<typeof setTimeout> | null = null;
+
 	constructor(conversationId: string, ourProfileId: number) {
 		this.conversationId = conversationId;
 		this.ourProfileId = ourProfileId;
+		this.lastReadTimestamp =
+			z.coerce
+				.number()
+				.int()
+				.safeParse(localStorage.getItem(`chat:read:${conversationId}`)).data ??
+			null;
 		void this.#initialLoad();
 	}
 
@@ -44,7 +56,6 @@ export class ConversationState {
 			}));
 			this.profile = result.profile;
 			this.pageKey = result.pageKey;
-			this.lastReadTimestamp = result.lastReadTimestamp;
 			this.#updatePreview(this.messages.at(0));
 			conversations.markRead(this.conversationId);
 		} catch (err) {
@@ -157,6 +168,48 @@ export class ConversationState {
 		return {
 			revert,
 		};
+	}
+
+	reportRead({
+		messageId,
+		timestamp,
+	}: {
+		messageId: string;
+		timestamp: number;
+	}): void {
+		if (this.lastReadTimestamp !== null && timestamp <= this.lastReadTimestamp)
+			return;
+		this.#readQueue.push({ messageId, timestamp });
+		if (this.#readTimer !== null) clearTimeout(this.#readTimer);
+		this.#readTimer = setTimeout(() => {
+			void this.#flushReadQueue();
+		}, 500);
+	}
+
+	async #flushReadQueue(): Promise<void> {
+		const queue = this.#readQueue;
+		this.#readQueue = [];
+		this.#readTimer = null;
+		if (queue.length === 0) return;
+		queue.sort((a, b) => a.timestamp - b.timestamp);
+		const highest = queue[queue.length - 1];
+		this.lastReadTimestamp = highest.timestamp;
+		localStorage.setItem(
+			`chat:read:${this.conversationId}`,
+			String(highest.timestamp),
+		);
+		const { revealMessageRead } = await getPreferences();
+		if (revealMessageRead) {
+			try {
+				await markConversationAsRead({
+					conversationId: this.conversationId,
+					messageId: highest.messageId,
+				});
+			} catch (err) {
+				console.error("Failed to mark conversation as read", err);
+				toast.error("Failed to mark conversation as read");
+			}
+		}
 	}
 
 	#previewFromMessage(message: OptimisticMessage | undefined): {
