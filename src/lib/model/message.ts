@@ -298,3 +298,33 @@ export const apiResponseMessageSchema = z.intersection(
 
 export type Message = z.infer<typeof messageSchema>;
 export type ApiResponseMessage = z.infer<typeof apiResponseMessageSchema>;
+
+export function previewFromMessage(message: ApiResponseMessage | undefined): {
+	type: string;
+	text: string | null;
+	albumId: number | null;
+	imageHash: string | null;
+} {
+	if (!message) return { type: "", text: null, albumId: null, imageHash: null };
+	switch (message.type) {
+		case "Text":
+			return {
+				type: "Text",
+				text: message.body.text,
+				albumId: null,
+				imageHash: null,
+			};
+		case "Image":
+		case "ExpiringImage":
+		case "Album":
+		case "ExpiringAlbum":
+		case "ExpiringAlbumV2":
+		default:
+			return {
+				type: message.type,
+				text: null,
+				albumId: null,
+				imageHash: null,
+			};
+	}
+}

@@ -3,7 +3,8 @@ mod error;
 mod state;
 mod storage;
 
-use tokio::sync::mpsc;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Notify};
 
 use crate::state::AppState;
 use api::client::GrindrClient;
@@ -17,6 +18,7 @@ pub fn run() {
     let client = GrindrClient::new().ok();
 
     let (ws_tx, ws_rx) = mpsc::channel(64);
+    let auth_notify = Arc::new(Notify::new());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -28,6 +30,7 @@ pub fn run() {
             client,
             ws_tx,
             ws_rx: tokio::sync::Mutex::new(Some(ws_rx)),
+            auth_notify,
         })
         .invoke_handler(tauri::generate_handler![
             api::auth::login,
@@ -35,11 +38,24 @@ pub fn run() {
             api::auth::logout,
             api::auth::auth_state,
             api::rest::request,
+            api::ws::ws_connect,
             api::ws::ws_send,
         ])
         .setup(|app| {
             #[cfg(all(target_os = "macos", not(feature = "keychain")))]
-            storage::init_file_store(app.path().app_data_dir()?);
+            {
+                storage::init_file_store(app.path().app_data_dir()?);
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let state = handle.state::<AppState>();
+                    if let Some(client) = state.client.as_ref() {
+                        client.reload_session().await;
+                        if client.authorization_header().await.is_some() {
+                            state.auth_notify.notify_one();
+                        }
+                    }
+                });
+            }
             api::ws::spawn_ws_task(app.handle().clone());
             Ok(())
         })

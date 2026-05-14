@@ -4,13 +4,16 @@ import z from "zod";
 import { markConversationAsRead } from "$lib/api/conversation";
 import { reactToMessage, sendMessage } from "$lib/api/messages";
 import { getPreferences } from "$lib/app-data/preferences.svelte";
+import {
+	apiResponseMessageSchema,
+	previewFromMessage,
+} from "$lib/model/message";
+import { chatV1MessageSentEventSchema, ws } from "$lib/ws.svelte";
 import type {
 	ApiResponseMessage,
 	Message as MessageType,
 } from "$lib/model/message";
-import { apiResponseMessageSchema } from "$lib/model/message";
-import { ws, wsMessageSentPayloadSchema } from "$lib/ws.svelte";
-import { conversations } from "../conversations.svelte";
+import type { ConversationsState } from "../conversations.svelte";
 import { getConversation } from "./messages";
 
 export type OptimisticMessage = ApiResponseMessage & {
@@ -31,12 +34,23 @@ export class ConversationState {
 	readonly conversationId: string;
 	readonly ourProfileId: number;
 
+	#conversations: ConversationsState;
 	#readQueue: { messageId: string; timestamp: number }[] = [];
 	#readTimer: ReturnType<typeof setTimeout> | null = null;
 
-	constructor(conversationId: string, ourProfileId: number) {
+	constructor({
+		conversationId,
+		ourProfileId,
+		conversations,
+	}: {
+		conversationId: string;
+		ourProfileId: number;
+		conversations: ConversationsState;
+	}) {
 		this.conversationId = conversationId;
 		this.ourProfileId = ourProfileId;
+		this.#conversations = conversations;
+		conversations.setActive(conversationId);
 		this.lastReadTimestamp =
 			z.coerce
 				.number()
@@ -47,7 +61,7 @@ export class ConversationState {
 
 		this.#unlistenWs = ws.on(
 			"chat.v1.message_sent",
-			wsMessageSentPayloadSchema,
+			chatV1MessageSentEventSchema,
 			(event) => {
 				if (event.payload.conversationId !== this.conversationId) return;
 				if (event.payload.senderId === this.ourProfileId) {
@@ -55,8 +69,8 @@ export class ConversationState {
 					if (pending) {
 						pending.status = "sent";
 						pending.messageId = event.payload.messageId;
+						return;
 					}
-					return;
 				}
 				if (this.messages.some((m) => m.messageId === event.payload.messageId))
 					return;
@@ -77,7 +91,11 @@ export class ConversationState {
 
 	#unlistenWs: Promise<() => void>;
 
+	#destroyed = false;
 	destroy(): void {
+		if (this.#destroyed) return;
+		this.#destroyed = true;
+		this.#conversations.clearActive(this.conversationId);
 		this.#unlistenWs.then((unlisten) => unlisten()).catch(console.error);
 		if (this.#readTimer !== null) clearTimeout(this.#readTimer);
 	}
@@ -89,14 +107,16 @@ export class ConversationState {
 			const result = await getConversation({
 				conversationId: this.conversationId,
 			});
-			this.messages = result.messages.map((m) => ({
-				...m,
-				status: "sent" as const,
-			}));
+			this.messages = removeDuplicateMessages(
+				result.messages.map((m) => ({
+					...m,
+					status: "sent" as const,
+				})),
+			);
 			this.profile = result.profile;
 			this.pageKey = result.pageKey;
 			this.#updatePreview(this.messages.at(0));
-			conversations.markRead(this.conversationId);
+			this.#conversations.markRead(this.conversationId);
 		} catch (err) {
 			this.error = err instanceof Error ? err : new Error(String(err));
 		} finally {
@@ -112,10 +132,10 @@ export class ConversationState {
 				conversationId: this.conversationId,
 				pageKey: this.pageKey,
 			});
-			this.messages = [
+			this.messages = removeDuplicateMessages([
 				...this.messages,
 				...result.messages.map((m) => ({ ...m, status: "sent" as const })),
-			];
+			]);
 			this.pageKey = result.pageKey;
 		} catch (err) {
 			toast.error("Failed to load more messages");
@@ -138,7 +158,7 @@ export class ConversationState {
 			reactions: [],
 			status: "pending" as const,
 		} as OptimisticMessage;
-		this.messages = [optimistic, ...this.messages];
+		this.messages = removeDuplicateMessages([optimistic, ...this.messages]);
 		this.#updatePreview(optimistic);
 		void this.#resolveMessage({ tempId, message });
 	}
@@ -160,7 +180,7 @@ export class ConversationState {
 				msg.status = "sent";
 				msg.messageId = messageId;
 			}
-			void conversations.ensureLoaded(this.conversationId);
+			void this.#conversations.ensureLoaded(this.conversationId);
 		} catch {
 			const msg = this.messages.find((m) => m.messageId === tempId);
 			if (msg) msg.status = "error";
@@ -170,9 +190,9 @@ export class ConversationState {
 	}
 
 	#updatePreview(message: OptimisticMessage | undefined) {
-		conversations.updatePreview({
+		this.#conversations.updatePreview({
 			conversationId: this.conversationId,
-			preview: this.#previewFromMessage(message),
+			preview: previewFromMessage(message),
 			timestamp: message?.timestamp ?? -1,
 		});
 	}
@@ -193,7 +213,7 @@ export class ConversationState {
 			const isOnly = this.messages.length === 0;
 			let revertDeleteConversation = () => {};
 			if (isOnly) {
-				({ revert: revertDeleteConversation } = conversations.remove(
+				({ revert: revertDeleteConversation } = this.#conversations.remove(
 					this.conversationId,
 				));
 			}
@@ -251,37 +271,6 @@ export class ConversationState {
 		}
 	}
 
-	#previewFromMessage(message: OptimisticMessage | undefined): {
-		type: string;
-		text: string | null;
-		albumId: number | null;
-		imageHash: string | null;
-	} {
-		if (!message)
-			return { type: "", text: null, albumId: null, imageHash: null };
-		switch (message.type) {
-			case "Text":
-				return {
-					type: "Text",
-					text: message.body.text,
-					albumId: null,
-					imageHash: null,
-				};
-			case "Image":
-			case "ExpiringImage":
-			case "Album":
-			case "ExpiringAlbum":
-			case "ExpiringAlbumV2":
-			default:
-				return {
-					type: message.type,
-					text: null,
-					albumId: null,
-					imageHash: null,
-				};
-		}
-	}
-
 	async reactTo(messageId: string, reactionType: number): Promise<void> {
 		const msg = this.messages.find((m) => m.messageId === messageId);
 		if (!msg) return;
@@ -297,4 +286,17 @@ export class ConversationState {
 			throw err;
 		}
 	}
+}
+
+function removeDuplicateMessages(
+	messages: OptimisticMessage[],
+): OptimisticMessage[] {
+	const ids = new Set<string>();
+	return messages
+		.filter((m) => {
+			if (ids.has(m.messageId)) return false;
+			ids.add(m.messageId);
+			return true;
+		})
+		.toSorted((a, b) => b.timestamp - a.timestamp);
 }

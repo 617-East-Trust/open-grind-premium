@@ -4,12 +4,13 @@ import {
 	getConversations,
 	markConversationAsRead,
 } from "$lib/api/conversation";
-import type { Conversation } from "$lib/model/conversation";
+import { previewFromMessage } from "$lib/model/message";
 import {
+	chatV1ConversationDeleteEventSchema,
+	chatV1MessageSentEventSchema,
 	ws,
-	wsConversationDeletePayloadSchema,
-	wsMessageSentPayloadSchema,
 } from "$lib/ws.svelte";
+import type { Conversation } from "$lib/model/conversation";
 
 const wsPromises: Promise<() => void>[] = [];
 
@@ -19,34 +20,43 @@ class ConversationsState {
 	loadingMore = $state(false);
 	initial: Promise<void>;
 
-	constructor() {
+	readonly ourProfileId: number;
+	#activeConversationId: string | null = null;
+
+	constructor(ourProfileId: number) {
+		this.ourProfileId = ourProfileId;
 		this.initial = this.#load(1);
 
 		wsPromises.push(
-			ws.on("chat.v1.message_sent", wsMessageSentPayloadSchema, (event) => {
-				const { conversationId, type, timestamp } = event.payload;
-				const entry = this.entries.find((e) => e.data.conversationId === conversationId);
+			ws.on("chat.v1.message_sent", chatV1MessageSentEventSchema, (event) => {
+				const message = event.payload;
+				const entry = this.entries.find(
+					(entry) => entry.data.conversationId === message.conversationId,
+				);
 				if (entry) {
-					entry.data.unreadCount += 1;
+					const isActive =
+						message.conversationId === this.#activeConversationId;
+					if (!isActive && message.senderId !== this.ourProfileId) {
+						entry.data.unreadCount += 1;
+					}
 					this.updatePreview({
-						conversationId,
-						preview: {
-							type,
-							text: (event.payload as { text?: string | null }).text ?? null,
-							albumId: null,
-							imageHash: null,
-						},
-						timestamp,
+						conversationId: message.conversationId,
+						preview: previewFromMessage(message),
+						timestamp: message.timestamp,
 					});
 				} else {
-					void this.ensureLoaded(conversationId);
+					void this.ensureLoaded(message.conversationId);
 				}
 			}),
-			ws.on("chat.v1.conversation.delete", wsConversationDeletePayloadSchema, (event) => {
-				for (const id of event.payload.conversationIds) {
-					this.remove(id);
-				}
-			}),
+			ws.on(
+				"chat.v1.conversation.delete",
+				chatV1ConversationDeleteEventSchema,
+				(event) => {
+					for (const id of event.payload.conversationIds) {
+						this.remove(id);
+					}
+				},
+			),
 		);
 	}
 
@@ -105,6 +115,19 @@ class ConversationsState {
 		};
 	}
 
+	setActive(conversationId: string): void {
+		console.log("Setting active conversation to", conversationId);
+		this.#activeConversationId = conversationId;
+		this.markRead(conversationId);
+	}
+
+	clearActive(conversationId: string): void {
+		if (this.#activeConversationId === conversationId) {
+			console.log("Clearing active conversation", conversationId);
+			this.#activeConversationId = null;
+		}
+	}
+
 	markRead(conversationId: string): void {
 		const entry = this.entries.find(
 			(e) => e.data.conversationId === conversationId,
@@ -140,4 +163,4 @@ class ConversationsState {
 	}
 }
 
-export const conversations = new ConversationsState();
+export { ConversationsState };

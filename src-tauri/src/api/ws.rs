@@ -5,7 +5,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::time::sleep;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::{
+    connect_async,
+    tungstenite::{client::IntoClientRequest, http::HeaderValue, Message},
+};
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -26,16 +29,25 @@ pub fn spawn_ws_task(app: AppHandle) {
 }
 
 async fn run_ws_loop(app: AppHandle) {
+    let state = app.state::<AppState>();
     let mut backoff = Duration::from_secs(1);
 
     loop {
+        state.auth_notify.notified().await;
+
         match connect_and_run(&app).await {
             Ok(()) => {
                 break;
             }
+            Err(e @ (AppError::NotInitialized | AppError::Auth(_))) => {
+                eprintln!("[ws] auth error, waiting for login: {e}");
+                app.emit("ws:disconnected", ()).ok();
+                backoff = Duration::from_secs(1);
+            }
             Err(e) => {
                 eprintln!("[ws] error: {e}");
                 app.emit("ws:disconnected", ()).ok();
+                state.auth_notify.notify_one();
                 sleep(backoff).await;
                 backoff = (backoff * 2).min(Duration::from_secs(30));
             }
@@ -52,15 +64,23 @@ async fn connect_and_run(app: &AppHandle) -> Result<(), AppError> {
         .await
         .ok_or_else(|| AppError::Auth("Not logged in".to_owned()))?;
 
-    let request = tokio_tungstenite::tungstenite::http::Request::builder()
-        .uri(WS_URL)
-        .header("Authorization", &authorization)
-        .header(
-            "User-Agent",
-            state.client()?.user_agent.as_str(),
-        )
-        .body(())
+    let mut request = WS_URL
+        .into_client_request()
         .map_err(|e| AppError::Http(format!("Failed to build WS request: {e}")))?;
+
+    {
+        let headers = request.headers_mut();
+        headers.insert(
+            "Authorization",
+            HeaderValue::from_str(&authorization)
+                .map_err(|e| AppError::Http(format!("Invalid auth header: {e}")))?,
+        );
+        headers.insert(
+            "User-Agent",
+            HeaderValue::from_str(state.client()?.user_agent.as_str())
+                .map_err(|e| AppError::Http(format!("Invalid user-agent: {e}")))?,
+        );
+    }
 
     let (ws_stream, _) = connect_async(request)
         .await
@@ -106,7 +126,8 @@ async fn run_message_loop(
                 Some(Ok(Message::Text(text))) => {
                     if let Ok(val) = serde_json::from_str::<Value>(&text) {
                         if let Some(event_type) = val["type"].as_str() {
-                            app.emit(&format!("ws:{event_type}"), &val).ok();
+                            let safe_type = event_type.replace('.', "_");
+                            app.emit(&format!("ws:{safe_type}"), &val).ok();
                         }
                     }
                 }
@@ -140,6 +161,20 @@ async fn run_message_loop(
             }
         }
     }
+}
+
+#[tauri::command]
+pub async fn ws_connect(state: tauri::State<'_, AppState>) -> Result<(), AppError> {
+    let has_session = state
+        .client()
+        .ok()
+        .and_then(|c| c.session.try_read().ok().map(|s| s.is_some()))
+        .unwrap_or(false);
+
+    if has_session {
+        state.auth_notify.notify_one();
+    }
+    Ok(())
 }
 
 #[tauri::command]

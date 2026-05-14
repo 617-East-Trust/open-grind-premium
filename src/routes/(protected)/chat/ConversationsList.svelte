@@ -4,7 +4,9 @@
 	import * as Empty from "$lib/components/ui/empty";
 	import Skeleton from "$lib/components/ui/skeleton/skeleton.svelte";
 	import Conversation from "./Conversation.svelte";
-	import { conversations } from "./conversations.svelte";
+	import { getConversations } from "./conversations-context.svelte";
+
+	const conversations = getConversations();
 
 	let {
 		class: className,

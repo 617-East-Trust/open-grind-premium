@@ -37,7 +37,7 @@ Tap received or sent.
 
 ## `chat.v1.conversation.delete`
 
-Conversation deleted, e.g. when another profile blocked you. Also fires for unlock events.
+Conversation deleted, e.g. when another profile blocked you. Also fires for unblock events.
 
 - *everything from [Notification Event](#notification-event)*
 - `payload` — object

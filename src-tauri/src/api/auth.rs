@@ -209,12 +209,16 @@ pub async fn login(
     email: String,
     password: String,
 ) -> Result<LoginResult, AppError> {
-    state.client()?.login(&email, &password).await
+    let result = state.client()?.login(&email, &password).await?;
+    state.auth_notify.notify_one();
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn refresh_token(state: tauri::State<'_, AppState>) -> Result<LoginResult, AppError> {
-    state.client()?.refresh_token().await
+    let result = state.client()?.refresh_token().await?;
+    state.auth_notify.notify_one();
+    Ok(result)
 }
 
 #[tauri::command]
@@ -231,7 +235,10 @@ pub async fn logout(state: tauri::State<'_, AppState>) -> Result<(), AppError> {
 
 #[tauri::command]
 pub async fn auth_state(state: tauri::State<'_, AppState>) -> Result<Option<u64>, AppError> {
-    let session = state.client()?.session.read().await;
+    let Ok(client) = state.client() else {
+        return Ok(None);
+    };
+    let session = client.session.read().await;
     Ok(session
         .as_ref()
         .and_then(|s| s.profile_id.parse::<u64>().ok()))

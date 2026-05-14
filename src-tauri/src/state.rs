@@ -1,4 +1,5 @@
-use tokio::sync::mpsc;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Notify};
 
 use crate::api::client::GrindrClient;
 use crate::api::ws::WsCommand;
@@ -8,6 +9,7 @@ pub struct AppState {
     pub client: Option<GrindrClient>,
     pub ws_tx: mpsc::Sender<WsCommand>,
     pub ws_rx: tokio::sync::Mutex<Option<mpsc::Receiver<WsCommand>>>,
+    pub auth_notify: Arc<Notify>,
 }
 
 impl AppState {

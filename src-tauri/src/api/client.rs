@@ -3,7 +3,7 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::error::AppError;
 
-use super::auth::{AuthStorage, Session};
+use super::auth::Session;
 use super::headers::{build_default_headers, build_user_agent, DeviceInfo};
 
 pub const BASE_URL: &str = "https://grindr.mobi";
@@ -23,7 +23,16 @@ impl GrindrClient {
 
         let http = Client::builder().default_headers(headers).build()?;
 
-        let session = AuthStorage::get_session()?;
+        #[cfg(all(target_os = "macos", not(feature = "keychain")))]
+        let session = None;
+        #[cfg(not(all(target_os = "macos", not(feature = "keychain"))))]
+        let session = match super::auth::AuthStorage::get_session() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("[client] could not load session: {e}");
+                None
+            }
+        };
 
         Ok(Self {
             http,
@@ -31,5 +40,12 @@ impl GrindrClient {
             refresh_lock: Mutex::new(()),
             user_agent,
         })
+    }
+
+    pub async fn reload_session(&self) {
+        match super::auth::AuthStorage::get_session() {
+            Ok(s) => *self.session.write().await = s,
+            Err(e) => eprintln!("[client] reload_session: {e}"),
+        }
     }
 }

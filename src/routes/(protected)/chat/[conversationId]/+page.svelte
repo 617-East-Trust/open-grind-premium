@@ -4,6 +4,7 @@
 
 	import * as Card from "$lib/components/ui/card";
 	import type { Message } from "$lib/model/message";
+	import { getConversations } from "../conversations-context.svelte";
 	import ChatNavBar from "./ChatNavBar.svelte";
 	import { ConversationState } from "./conversation-state.svelte";
 	import MessageComposer from "./MessageComposer.svelte";
@@ -14,24 +15,42 @@
 	if (page.params.conversationId === undefined)
 		throw new Error("conversationId is required");
 
+	const conversations = getConversations();
 	const conversationId = $derived(page.params.conversationId as string);
 	const ourProfileId = $derived(data.ourProfileId);
 
 	let conversationState = $state(
-		untrack(() => new ConversationState(conversationId, data.ourProfileId)),
+		untrack(
+			() =>
+				new ConversationState({
+					conversationId,
+					ourProfileId: data.ourProfileId,
+					conversations,
+				}),
+		),
 	);
 
 	$effect(() => {
-		if (
-			conversationId !== conversationState.conversationId ||
-			ourProfileId !== conversationState.ourProfileId
-		) {
-			conversationState.destroy();
-			conversationState = new ConversationState(conversationId, ourProfileId);
-		}
-		return () => {
-			conversationState.destroy();
-		};
+		const id = conversationId;
+		const profileId = ourProfileId;
+
+		const state = untrack(() => {
+			if (
+				id !== conversationState.conversationId ||
+				profileId !== conversationState.ourProfileId
+			) {
+				const next = new ConversationState({
+					conversationId: id,
+					ourProfileId: profileId,
+					conversations,
+				});
+				conversationState = next;
+				return next;
+			}
+			return conversationState;
+		});
+
+		return () => state.destroy();
 	});
 </script>
 

@@ -1,13 +1,13 @@
 import z from "zod";
 
 import { fetchRest } from "$lib/api";
-import type { Conversation } from "$lib/model/conversation";
 import {
+	type ApiResponseMessage,
 	apiResponseMessageSchema,
 	messageSchema,
-	type ApiResponseMessage,
 } from "$lib/model/message";
 import { unixTimestampMsSchema } from "$lib/model/types";
+import type { Conversation } from "$lib/model/conversation";
 
 const conversationMessagesSchema = z.object({
 	lastReadTimestamp: unixTimestampMsSchema.nullable(),

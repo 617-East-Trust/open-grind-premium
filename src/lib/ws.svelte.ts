@@ -1,32 +1,34 @@
-import z from "zod";
-import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import z from "zod";
 
-export const wsMessageSentPayloadSchema = z.object({
+import { apiResponseMessageSchema } from "$lib/model/message";
+
+export const notificationEventSchema = z.object({
+	type: z.string(),
+	notificationId: z.string().nullable(),
+	ref: z.string().nullable(),
+	payload: z.unknown(),
+});
+
+export const chatV1MessageSentEventSchema = notificationEventSchema.safeExtend({
 	type: z.literal("chat.v1.message_sent"),
-	notificationId: z.string().nullable(),
-	ref: z.null(),
-	payload: z.looseObject({
-		conversationId: z.string(),
-		messageId: z.string(),
-		senderId: z.number().int(),
-		timestamp: z.number(),
-		type: z.string(),
-	}),
+	payload: apiResponseMessageSchema,
 });
 
-export const wsConversationDeletePayloadSchema = z.object({
-	type: z.literal("chat.v1.conversation.delete"),
-	notificationId: z.string().nullable(),
-	ref: z.null(),
-	payload: z.object({
-		conversationIds: z.array(z.string()),
-	}),
-});
+export const chatV1ConversationDeleteEventSchema =
+	notificationEventSchema.safeExtend({
+		type: z.literal("chat.v1.conversation.delete"),
+		payload: z.object({
+			conversationIds: z.array(z.string()),
+		}),
+	});
 
-export type WsMessageSentPayload = z.infer<typeof wsMessageSentPayloadSchema>;
-export type WsConversationDeletePayload = z.infer<
-	typeof wsConversationDeletePayloadSchema
+export type ChatV1MessageSentEventPayload = z.infer<
+	typeof chatV1MessageSentEventSchema
+>;
+export type ChatV1ConversationDeleteEventPayload = z.infer<
+	typeof chatV1ConversationDeleteEventSchema
 >;
 
 export type WsStatus = "disconnected" | "connecting" | "connected" | "error";
@@ -37,23 +39,22 @@ class WsState {
 	constructor() {
 		listen<void>("ws:connected", () => {
 			this.status = "connected";
+			console.log("[ws] connected");
 		}).catch(console.error);
 
 		listen<void>("ws:disconnected", () => {
 			this.status = "disconnected";
 		}).catch(console.error);
 
-		listen<string>("ws:ws.error", (event) => {
+		listen<string>("ws:ws_error", (event) => {
 			console.error("[ws] server error", event.payload);
 		}).catch(console.error);
 	}
 
 	connect(): void {
-		if (this.status === "connecting" || this.status === "connected") return;
-		this.status = "connecting";
-		invoke("ws_send").catch((e: unknown) => {
+		console.log("[ws] connecting...");
+		invoke("ws_connect").catch((e: unknown) => {
 			console.error("[ws] connect failed", e);
-			this.status = "error";
 		});
 	}
 
@@ -71,7 +72,8 @@ class WsState {
 		schema: z.ZodType<T>,
 		handler: (payload: T) => void,
 	): Promise<() => void> {
-		return listen<unknown>(`ws:${eventType}`, (event) => {
+		const safeName = eventType.replaceAll(".", "_");
+		return listen<unknown>(`ws:${safeName}`, (event) => {
 			const result = schema.safeParse(event.payload);
 			if (result.success) {
 				handler(result.data);
