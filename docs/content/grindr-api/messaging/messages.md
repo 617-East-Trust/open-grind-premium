@@ -242,7 +242,7 @@ Query (optional):
 
 Response:
 
-- `lastReadTimestamp` — unix timestamp in milliseconds or `null`
+- `lastReadTimestamp` — unix timestamp of recipient's side in milliseconds or `null`; is not affected by yours calls to [mark messages as read](/grindr-api/messaging/conversations#mark-messages-as-read)
 - `messages` — array of [Message](#message)
 - `metadata` — nested object
   - `translate` — boolean

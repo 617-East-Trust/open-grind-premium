@@ -6,7 +6,7 @@ export const [getMessageContext, setMessageContext] = createContext<
 		firstInStack: boolean;
 		lastInStack: boolean;
 		indexInStack: number;
-		msgOut: boolean;
+		isOut: boolean;
 		timestamp: number;
 	}
 >();

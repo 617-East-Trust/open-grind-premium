@@ -2,15 +2,7 @@
 	import { format } from "date-fns";
 	import { getMessageContext } from "./context";
 
-	const { timestamp, msgOut } = $derived(getMessageContext()());
+	const { timestamp } = $derived(getMessageContext()());
 </script>
 
-<!-- TODO: read indicator -->
-<span
-	class={[
-		"text-xs text-muted-foreground mx-3 mt-0.5",
-		{ "text-right": msgOut },
-	]}
->
-	{format(new Date(timestamp), "H:mm")}
-</span>
+{format(new Date(timestamp), "H:mm")}

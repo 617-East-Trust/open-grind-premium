@@ -5,8 +5,10 @@ import { geohashSchema } from "$lib/model/geohash";
 import { gridSearchFiltersSchema } from "$lib/components/filters/filters";
 
 const preferencesSchema = z.object({
-	geohash: geohashSchema.nullable(),
+	geohash: geohashSchema.nullable().default(null),
 	gridSearchFilters: gridSearchFiltersSchema.optional(),
+	revealMessageRead: z.boolean().default(false),
+	revealProfileViews: z.boolean().default(false),
 });
 
 export async function getPreferences(): Promise<
@@ -19,6 +21,8 @@ export async function getPreferences(): Promise<
 	} else {
 		return {
 			geohash: null,
+			revealMessageRead: false,
+			revealProfileViews: false,
 		};
 	}
 }

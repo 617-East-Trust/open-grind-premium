@@ -5,12 +5,9 @@
 	import { Skeleton } from "$lib/components/ui/skeleton";
 	import ProgressiveBlur from "$lib/components/ProgressiveBlur.svelte";
 	import DisplayName from "$lib/components/DisplayName.svelte";
+	import type { ConversationState } from "./conversation-state.svelte";
 
-	let {
-		conversation,
-	}: {
-		conversation: ReturnType<typeof import("./messages").getConversation>;
-	} = $props();
+	let { conversationState }: { conversationState: ConversationState } = $props();
 </script>
 
 <ProgressiveBlur
@@ -23,7 +20,7 @@
 	<a href="/chat" class="flex items-center justify-center w-19 h-full">
 		<ArrowLeftIcon size={32} />
 	</a>
-	{#await conversation}
+	{#if conversationState.loading || conversationState.profile === null}
 		<div class="py-4 ps-0 flex-1 flex items-center gap-3">
 			<Skeleton class="rounded-full size-[37.5px]" />
 			<div class="flex flex-col gap-2">
@@ -31,7 +28,10 @@
 				<Skeleton class="rounded-md w-12 h-3" />
 			</div>
 		</div>
-	{:then { profile }}
+	{:else if conversationState.error}
+		<span class="flex-1">Failed to load conversation</span>
+	{:else}
+		{@const profile = conversationState.profile}
 		<a href="/profile/{profile.profileId}" class="flex-1 ps-0 py-4 pe-4">
 			<Card.Header class="flex items-center gap-4 px-0">
 				<Avatar.Root class="size-[37.5px] after:rounded-full">
@@ -77,7 +77,5 @@
 				</div>
 			</Card.Header>
 		</a>
-	{:catch}
-		<span class="flex-1">Failed to load conversation</span>
-	{/await}
+	{/if}
 </ProgressiveBlur>

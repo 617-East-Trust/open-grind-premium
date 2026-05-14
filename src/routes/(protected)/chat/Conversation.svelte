@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { UserIcon } from "phosphor-svelte";
+	import { page } from "$app/state";
 	import { Badge } from "$lib/components/ui/badge";
 	import * as Avatar from "$lib/components/ui/avatar";
-	import { formatDistanceCustom } from "$lib/utils";
 	import * as Item from "$lib/components/ui/item";
 	import type { Conversation } from "$lib/model/conversation";
-	import { page } from "$app/state";
 	import DisplayName from "$lib/components/DisplayName.svelte";
+	import ConversationRelativeTimeDynamic from "./ConversationRelativeTimeDynamic.svelte";
 
 	let {
 		conversation,
@@ -83,8 +83,9 @@
 		<span
 			class="text-muted-foreground font-medium text-right truncate max-w-full"
 		>
-			<!-- TODO: update in real time -->
-			{formatDistanceCustom(conversation.data.lastActivityTimestamp)}
+			<ConversationRelativeTimeDynamic
+				date={conversation.data.lastActivityTimestamp}
+			/>
 		</span>
 		{#if conversation.data.unreadCount > 0}
 			<Badge class="px-[5.5px] @max-[9rem]:hidden">

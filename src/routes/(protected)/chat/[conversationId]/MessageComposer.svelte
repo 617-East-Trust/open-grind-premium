@@ -1,12 +1,13 @@
 <script lang="ts">
+	import { MicrophoneIcon, PaperPlaneRightIcon } from "phosphor-svelte";
 	import { expoOut } from "svelte/easing";
 	import { fade } from "svelte/transition";
 	import toast from "svelte-french-toast";
-	import { MicrophoneIcon, PaperPlaneRightIcon } from "phosphor-svelte";
 	import { Button } from "$lib/components/ui/button";
 	import { Textarea } from "$lib/components/ui/textarea";
+	import type { Message } from "$lib/model/message";
 
-	let { onSend }: { onSend: (params: { text: string }) => Promise<void> } =
+	let { onSend }: { onSend: (params: Message) => void | Promise<void> } =
 		$props();
 
 	let textContent = $state("");
@@ -15,7 +16,7 @@
 		const text = textContent.trim();
 		if (text === "") return;
 		try {
-			await onSend({ text });
+			await onSend({ type: "Text", body: { text } });
 			textContent = "";
 		} catch (error) {
 			console.error(error);
@@ -34,7 +35,11 @@
 	<Textarea
 		placeholder="Say something..."
 		class="min-h-9.5 rounded-[20px] shrink-0 max-h-31.5 py-2 pr-9.5 h-fit! leading-5 placeholder-shown:truncate"
-		onkeydown={(event) => {
+		onkeydown={(
+			event: KeyboardEvent & {
+				currentTarget: EventTarget & HTMLTextAreaElement;
+			},
+		) => {
 			if (event.key === "Enter" && !event.shiftKey) {
 				event.preventDefault();
 				event.currentTarget.form?.requestSubmit();

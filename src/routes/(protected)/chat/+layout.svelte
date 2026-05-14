@@ -3,6 +3,7 @@
 	import * as Card from "$lib/components/ui/card";
 	import { page } from "$app/state";
 	import * as Resizable from "$lib/components/ui/resizable";
+	import { MediaQuery } from "svelte/reactivity";
 
 	let {
 		children,
@@ -28,50 +29,56 @@
 	});
 
 	const isChatSelected = $derived(page.params.conversationId !== undefined);
+
+	const mobile = new MediaQuery("(width < 424px)");
 </script>
 
 <main class="flex w-full h-dvh">
-	<Resizable.PaneGroup
-		direction="horizontal"
-		class="max-w-300 mx-auto max-h-full h-auto! max-xs:hidden!"
-		bind:ref={paneGroup}
-		autoSaveId="/(protected)/chat/layout"
-	>
-		<Resizable.Pane
-			defaultSize={43}
-			minSize={conversationsListMinWidthPercentage * 100}
-			collapsedSize={conversationsListCollapsedSizePercentage * 100}
-			collapsible
-			class="min-w-29.25"
+	{#if !mobile.current}
+		<Resizable.PaneGroup
+			direction="horizontal"
+			class="max-w-300 mx-auto max-h-full h-auto! max-xs:hidden!"
+			bind:ref={paneGroup}
+			autoSaveId="/(protected)/chat/layout"
 		>
-			<ConversationsList class="pb-24 pe-0.75" />
-		</Resizable.Pane>
-		<Resizable.Handle
-			class="cursor-col-resize! px-2 bg-transparent"
-			withHandle
-		/>
-		<Resizable.Pane
-			defaultSize={57}
-			minSize={pageContentMinWidthPercentage * 100}
-		>
-			<div class="flex-1 self-stretch p-4 ps-1 pb-18 h-full">
-				<Card.Root
-					class={[
-						"h-full rounded-2xl p-0 gap-0 relative dark:ring-neutral-800",
-						{
-							"bg-card/20 ring-0": !isChatSelected,
-						},
-					]}
-				>
-					{@render children?.()}
-				</Card.Root>
-			</div>
-		</Resizable.Pane>
-	</Resizable.PaneGroup>
+			<Resizable.Pane
+				defaultSize={43}
+				minSize={conversationsListMinWidthPercentage * 100}
+				collapsedSize={conversationsListCollapsedSizePercentage * 100}
+				collapsible
+				class="min-w-29.25"
+			>
+				<ConversationsList class="pb-24 pe-0.75" />
+			</Resizable.Pane>
+			<Resizable.Handle
+				class="cursor-col-resize! px-2 bg-transparent"
+				withHandle
+			/>
+			<Resizable.Pane
+				defaultSize={57}
+				minSize={pageContentMinWidthPercentage * 100}
+			>
+				<div class="flex-1 self-stretch p-4 ps-1 pb-18 h-full">
+					<Card.Root
+						class={[
+							"h-full rounded-2xl p-0 gap-0 relative dark:ring-neutral-800",
+							{
+								"bg-card/20 ring-0": !isChatSelected,
+							},
+						]}
+					>
+						{@render children?.()}
+					</Card.Root>
+				</div>
+			</Resizable.Pane>
+		</Resizable.PaneGroup>
+	{/if}
 	{#if isChatSelected}
-		<div class="flex-1 self-stretch h-full flex xs:hidden flex-col max-w-full">
-			{@render children?.()}
-		</div>
+		{#if mobile.current}
+			<div class="flex-1 self-stretch h-full flex flex-col max-w-full">
+				{@render children?.()}
+			</div>
+		{/if}
 	{:else}
 		<ConversationsList class="xs:hidden pb-24" />
 	{/if}

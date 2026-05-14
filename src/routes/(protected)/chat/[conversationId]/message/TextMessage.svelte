@@ -4,7 +4,7 @@
 
 	let { message }: { message: TextMessage["body"] } = $props();
 
-	const { lastInStack, msgOut } = $derived(getMessageContext()());
+	const { lastInStack, isOut } = $derived(getMessageContext()());
 	const { clone, setRef, adornments } = $derived(getMessageMetaContext()());
 
 	let el: HTMLDivElement | null = $state(null);
@@ -17,12 +17,12 @@
 	class={[
 		"py-2 px-3 rounded-xl w-fit max-w-100 text-black shrink-0 relative overflow-visible select-text",
 		{
-			"bg-message-bubble-in": !msgOut,
-			"ms-3": !msgOut && !clone,
-			"rounded-es-none": lastInStack && !msgOut,
-			"bg-message-bubble-out": msgOut,
-			"me-3": msgOut && !clone,
-			"rounded-ee-none": lastInStack && msgOut,
+			"bg-message-bubble-in": !isOut,
+			"ms-3": !isOut && !clone,
+			"rounded-es-none": lastInStack && !isOut,
+			"bg-message-bubble-out": isOut,
+			"me-3": isOut && !clone,
+			"rounded-ee-none": lastInStack && isOut,
 		},
 	]}
 	bind:this={el}
@@ -34,9 +34,9 @@
 			class={[
 				"absolute bottom-0",
 				{
-					"fill-message-bubble-in right-full translate-x-[0.5px]": !msgOut,
-					"fill-message-bubble-out -scale-x-100 left-full -translate-x-[0.5px]":
-						msgOut,
+					"fill-message-bubble-in right-full translate-x-[0.5px]": !isOut,
+					"fill-message-bubble-out -scale-x-100 left-full translate-x-[-0.5px]":
+						isOut,
 				},
 			]}
 		>

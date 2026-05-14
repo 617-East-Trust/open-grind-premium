@@ -10,10 +10,12 @@
 	let {
 		textContent,
 		reactionAvailable,
+		onDelete,
 		...props
 	}: ComponentProps<typeof ContextMenu> & {
 		reactionAvailable?: boolean;
 		textContent?: string;
+		onDelete?: () => void;
 	} = $props();
 </script>
 
@@ -57,7 +59,7 @@
 			<Button
 				variant="ghost"
 				onclick={() => {
-					toast.error("TODO: Delete message not implemented yet");
+					onDelete?.();
 					props.onClose();
 				}}
 			>

@@ -29,7 +29,8 @@ function schemaToStringRecord<T extends z.ZodObject>(
 		if (value === undefined || value === null) continue;
 		if (typeof value === "boolean") result[key] = value ? "true" : "false";
 		else if (Array.isArray(value)) result[key] = value.map(String).join(",");
-		else if (typeof value === "number" || typeof value === "string") result[key] = String(value);
+		else if (typeof value === "number" || typeof value === "string")
+			result[key] = String(value);
 	}
 	return result;
 }
@@ -73,20 +74,20 @@ export function urlSearchParamsCodec<T extends z.ZodObject>(schema: T) {
 				schemaToStringRecord(schema, data as z.output<T>),
 			);
 		},
-	} as {
-		decode: (value: URLSearchParams) => z.input<T>;
-		encode: (value: z.input<T>) => URLSearchParams;
 	});
 }
 
-export function formatDistanceCustom(date: number) {
+export function formatTimeRelativeCustom(date: number) {
+	if (date < 0) return "";
 	const diff = Date.now() - date;
 	if (diff < 60 * 1000) return "Just now";
-	else if (diff < 60 * 60 * 1000)
-		return `${Math.floor(diff / (60 * 1000))} mins`;
-	else if (diff < 24 * 60 * 60 * 1000)
-		return `${Math.floor(diff / (60 * 60 * 1000))} hr`;
-	else if (diff < 2 * 24 * 60 * 60 * 1000) return `Yesterday`;
+	else if (diff < 60 * 60 * 1000) {
+		const mins = Math.floor(diff / (60 * 1000));
+		return `${mins} min` + (mins > 1 ? "s" : "");
+	} else if (diff < 24 * 60 * 60 * 1000) {
+		const hrs = Math.floor(diff / (60 * 60 * 1000));
+		return `${hrs} hr` + (hrs > 1 ? "s" : "");
+	} else if (diff < 2 * 24 * 60 * 60 * 1000) return `Yesterday`;
 	else if (diff < 7 * 24 * 60 * 60 * 1000) return format(date, "EEEE");
 	else return format(date, "MMM d");
 }

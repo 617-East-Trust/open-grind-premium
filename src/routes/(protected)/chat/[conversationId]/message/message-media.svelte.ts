@@ -10,8 +10,8 @@ export class MessageMediaState {
 	get lastInStack() {
 		return this.#msgCtx.lastInStack;
 	}
-	get msgOut() {
-		return this.#msgCtx.msgOut;
+	get isOut() {
+		return this.#msgCtx.isOut;
 	}
 	get clone() {
 		return this.#meta.clone;
@@ -22,8 +22,8 @@ export class MessageMediaState {
 
 	get cornerClass(): ClassValue {
 		return {
-			"rounded-es-[6px]": this.lastInStack && !this.msgOut,
-			"rounded-ee-[6px]": this.lastInStack && this.msgOut,
+			"rounded-es-[6px]": this.lastInStack && !this.isOut,
+			"rounded-ee-[6px]": this.lastInStack && this.isOut,
 		};
 	}
 

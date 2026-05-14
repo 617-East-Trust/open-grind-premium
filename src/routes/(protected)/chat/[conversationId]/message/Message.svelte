@@ -16,21 +16,28 @@
 
 	let {
 		message,
-		ourProfileId,
+		isOut,
 		indexInStack,
 		stackLength,
 		dayStart,
+		status,
 		onReact,
+		onDelete,
+		isRead,
+		onVisible,
 	}: {
 		message: ApiResponseMessage;
-		ourProfileId: number;
+		isOut: boolean;
 		indexInStack: number;
 		stackLength: number;
 		dayStart?: number;
+		status?: "sent" | "pending" | "error";
 		onReact?: (reactionId: number) => void;
+		onDelete?: () => void;
+		isRead: boolean | null;
+		onVisible?: () => void;
 	} = $props();
 
-	const msgOut = $derived(message.senderId === ourProfileId);
 	const firstInStack = $derived(indexInStack === 0);
 	const lastInStack = $derived(indexInStack === stackLength - 1);
 
@@ -38,7 +45,7 @@
 		firstInStack,
 		lastInStack,
 		indexInStack,
-		msgOut,
+		isOut,
 		timestamp: message.timestamp,
 	}));
 
@@ -105,6 +112,25 @@
 	}
 
 	let contextMenu: HTMLDialogElement | null = $state(null);
+
+	function observeRead(node: HTMLElement) {
+		if (!onVisible) return {};
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting) {
+					onVisible();
+					observer.disconnect();
+				}
+			},
+			{ threshold: 0 },
+		);
+		observer.observe(node);
+		return {
+			destroy() {
+				observer.disconnect();
+			},
+		};
+	}
 </script>
 
 {#snippet adornments()}
@@ -112,8 +138,8 @@
 		class={[
 			"absolute top-0 -translate-y-1/2 z-5",
 			{
-				"translate-x-1/2 right-0": !msgOut,
-				"-translate-x-1/2 left-0": msgOut,
+				"translate-x-1/2 right-0": !isOut,
+				"-translate-x-1/2 left-0": isOut,
 			},
 		]}
 	>
@@ -161,14 +187,14 @@
 	{/if}
 	<div
 		class={{
-			"*:me-auto *:float-start pe-3": !msgOut,
-			"*:ms-auto *:float-end ps-3": msgOut,
+			"*:me-auto *:float-start pe-3": !isOut,
+			"*:ms-auto *:float-end ps-3": isOut,
 		}}
 		role="button"
 		tabindex="0"
 		aria-label="Message"
 		ondblclick={(event) => {
-			if (!msgOut && onReact) {
+			if (!isOut && onReact) {
 				event.preventDefault();
 				onReact(1);
 			}
@@ -185,11 +211,32 @@
 			onContextMenu();
 		}}
 		style:visibility={contextMenuOpen ? "hidden" : undefined}
+		use:observeRead
 	>
 		{@render content()}
 	</div>
 	{#if lastInStack}
-		<MessageTime />
+		<span
+			class={[
+				"text-xs text-muted-foreground mx-3 mt-0.5",
+				{ "text-right": isOut },
+			]}
+		>
+			{#if status === "pending"}
+				Sending...
+			{:else if status === "error"}
+				<span class="text-destructive"> Failed to send </span>
+			{:else}
+				{#if isRead !== null}
+					{#if isRead}
+						Read
+					{:else}
+						Sent
+					{/if}
+				{/if}
+				<MessageTime />
+			{/if}
+		</span>
 	{/if}
 </div>
 
@@ -200,6 +247,7 @@
 		onClose={() => (contextMenuOpen = false)}
 		style={inheritedStyles}
 		textContent={message.type === "Text" ? message.body.text : undefined}
-		reactionAvailable={message.reactions.length === 0 && !msgOut}
+		reactionAvailable={message.reactions.length === 0 && !isOut}
+		{onDelete}
 	/>
 {/if}

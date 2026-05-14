@@ -1,9 +1,7 @@
 <script lang="ts">
-	import toast from "svelte-french-toast";
 	import * as Empty from "$lib/components/ui/empty";
-	import { getConversations } from "$lib/api/conversation";
+	import { conversations } from "./conversations.svelte";
 	import Skeleton from "$lib/components/ui/skeleton/skeleton.svelte";
-	import type { Conversation as ConversationModel } from "$lib/model/conversation";
 	import Conversation from "./Conversation.svelte";
 	import { ChatCircleSlashIcon } from "phosphor-svelte";
 
@@ -13,36 +11,11 @@
 		class?: import("svelte/elements").ClassValue;
 	} = $props();
 
-	let entries = $state<ConversationModel[]>([]);
-	let nextPage = $state<number | null>(null);
-	let loadingMore = $state(false);
-
-	let initial = $state(load(1));
-
-	async function load(page: number) {
-		const result = await getConversations(page);
-		entries.push(...result.entries);
-		nextPage = result.nextPage;
-	}
-
-	async function loadMore() {
-		if (loadingMore || nextPage === null) return;
-		loadingMore = true;
-		try {
-			await load(nextPage);
-		} catch (error) {
-			console.error(error);
-			toast.error("Failed to load more conversations");
-		} finally {
-			loadingMore = false;
-		}
-	}
-
 	function observeSentinel(node: HTMLElement) {
 		const observer = new IntersectionObserver(
 			(es) => {
 				if (es[0].isIntersecting)
-					loadMore().catch((error) => console.error(error));
+					conversations.loadMore().catch((error) => console.error(error));
 			},
 			{ rootMargin: "400px" },
 		);
@@ -61,12 +34,12 @@
 		className,
 	]}
 >
-	{#await initial}
+	{#await conversations.initial}
 		{#each Array(8)}
 			<Skeleton class="w-full h-24.5 shrink-0" />
 		{/each}
 	{:then}
-		{#each entries as conversation (conversation.data.conversationId)}
+		{#each conversations.entries as conversation (conversation.data.conversationId)}
 			<Conversation {conversation} />
 		{:else}
 			<Empty.Root>
@@ -81,12 +54,12 @@
 				</Empty.Header>
 			</Empty.Root>
 		{/each}
-		{#if loadingMore}
+		{#if conversations.loadingMore}
 			{#each Array(6)}
 				<Skeleton class="w-full h-24.5 shrink-0" />
 			{/each}
 		{/if}
-		{#if nextPage !== null}
+		{#if conversations.nextPage !== null}
 			<div class="h-0" use:observeSentinel></div>
 		{/if}
 	{/await}
