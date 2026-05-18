@@ -17,6 +17,7 @@
 		applyBackGestureHandler();
 	});
 
+	import RequestBlockedAlert from "$lib/api/request-blocked/RequestBlockedAlert.svelte";
 	import favicon from "$lib/assets/favicon.png";
 
 	let {
@@ -48,3 +49,4 @@
 <IconContext values={{}}>
 	{@render children?.()}
 </IconContext>
+<RequestBlockedAlert />

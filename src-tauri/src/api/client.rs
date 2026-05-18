@@ -42,7 +42,7 @@ impl GrindrClient {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("[client] could not load session: {e}");
-                 None
+                None
             }
         };
 

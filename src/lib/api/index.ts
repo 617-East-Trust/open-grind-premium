@@ -4,6 +4,7 @@ import { goto } from "$app/navigation";
 import { toast } from "svelte-sonner";
 import z from "zod";
 
+import { requestBlockedAlertState } from "$lib/api/request-blocked/request-blocked-state.svelte";
 import { fromBase64, toBase64 } from "$lib/base64";
 
 export const methods = {
@@ -19,6 +20,13 @@ export const methods = {
 	auth_state: {
 		request: z.undefined(),
 		response: z.number().int().nonnegative().nullable(),
+	},
+	rotate_api_params: {
+		request: z.undefined(),
+		response: z.object({
+			"user-agent": z.string(),
+			"l-device-info": z.string(),
+		}),
 	},
 	logout: {
 		request: z.undefined(),
@@ -110,6 +118,9 @@ export async function fetchRest(
 					text.includes("<title>Attention Required! | Cloudflare</title>") &&
 					text.includes("Sorry, you have been blocked")
 				) {
+					if (!requestBlockedAlertState.disable) {
+						requestBlockedAlertState.open = true;
+					}
 					throw new Error("Request blocked");
 				} else {
 					try {
