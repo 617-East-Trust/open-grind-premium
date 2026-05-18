@@ -1,3 +1,4 @@
+import { untrack } from "svelte";
 import { toast } from "svelte-sonner";
 import z from "zod";
 
@@ -28,7 +29,8 @@ class GridState {
 	#loadingBatches = new Set<number>();
 
 	load(geohash: string): void {
-		if (this.#geohash === geohash && this.items.length > 0) return;
+		if (untrack(() => this.#geohash === geohash && this.items.length > 0))
+			return;
 		this.#geohash = geohash;
 		this.#reset();
 		void this.#fetchProfiles(geohash);
