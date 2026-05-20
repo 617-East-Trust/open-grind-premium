@@ -1,9 +1,6 @@
 <script lang="ts">
-	import type { TextMessage } from "$lib/model/message";
 	import { getMessageContext, getMessageMetaContext } from "./context";
 	import MessageTail from "./MessageTail.svelte";
-
-	let { message }: { message: TextMessage["body"] } = $props();
 
 	const { lastInStack, isOut } = $derived(getMessageContext()());
 	const { clone, setRef, adornments } = $derived(getMessageMetaContext()());
@@ -16,12 +13,10 @@
 
 <div
 	class={[
-		"py-2 px-3 rounded-xl w-fit max-w-100 text-black shrink-0 relative overflow-visible select-text",
+		"py-2 px-3 rounded-xl w-fit max-w-100 text-muted-foreground italic shrink-0 relative overflow-visible select-text bg-muted",
 		{
-			"bg-message-bubble-in": !isOut,
 			"ms-3": !isOut && !clone,
 			"rounded-es-none": lastInStack && !isOut,
-			"bg-message-bubble-out": isOut,
 			"me-3": isOut && !clone,
 			"rounded-ee-none": lastInStack && isOut,
 		},
@@ -29,14 +24,8 @@
 	bind:this={el}
 >
 	{#if lastInStack}
-		<MessageTail
-			{isOut}
-			class={{
-				"fill-message-bubble-in": !isOut,
-				"fill-message-bubble-out": isOut,
-			}}
-		/>
+		<MessageTail {isOut} class="fill-muted" />
 	{/if}
-	<span class="whitespace-pre-wrap">{message.text}</span>
+	<span class="whitespace-pre-wrap">Message unsent</span>
 	{@render adornments?.()}
 </div>

@@ -148,6 +148,7 @@ class ConversationsState {
 					this.entries.unshift(incoming);
 				}
 			}
+			this.#sortEntries();
 		} catch (error) {
 			console.error("Failed to reconcile conversation list", error);
 		}
@@ -260,6 +261,13 @@ class ConversationsState {
 		if (!entry) return;
 		entry.data.preview = preview;
 		entry.data.lastActivityTimestamp = timestamp;
+		this.#sortEntries();
+	}
+
+	#sortEntries(): void {
+		this.entries = this.entries.toSorted(
+			(a, b) => b.data.lastActivityTimestamp - a.data.lastActivityTimestamp,
+		);
 	}
 
 	getCachedConversation(id: string): CachedConversation | undefined {

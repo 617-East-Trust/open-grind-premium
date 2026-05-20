@@ -7,6 +7,7 @@ import { getPreferences } from "$lib/app-data/preferences.svelte";
 import {
 	apiResponseMessageSchema,
 	previewFromMessage,
+	unsentMessageSchema,
 } from "$lib/model/message";
 import { chatV1MessageSentEventSchema, ws } from "$lib/ws.svelte";
 import type {
@@ -127,16 +128,25 @@ export class ConversationState {
 			const next: OptimisticMessage[] = [];
 			const seenLocalIds = new Set<string>();
 			let dropped = 0;
+			let updated = 0;
 			for (const local of this.messages) {
 				if (local.status !== "sent") {
 					next.push(local);
 					continue;
 				}
 				seenLocalIds.add(local.messageId);
-				if (
-					local.timestamp < oldestServerTs ||
-					serverById.has(local.messageId)
-				) {
+				const serverVersion = serverById.get(local.messageId);
+				if (serverVersion) {
+					next.push({ ...serverVersion, status: "sent" as const });
+					if (
+						serverVersion.unsent !== local.unsent ||
+						serverVersion.type !== local.type ||
+						JSON.stringify(serverVersion.reactions) !==
+							JSON.stringify(local.reactions)
+					) {
+						updated++;
+					}
+				} else if (local.timestamp < oldestServerTs) {
 					next.push(local);
 				} else {
 					dropped++;
@@ -151,7 +161,7 @@ export class ConversationState {
 				fresh.push(msg);
 			}
 
-			if (fresh.length === 0 && dropped === 0) {
+			if (fresh.length === 0 && dropped === 0 && updated === 0) {
 				this.#syncCache();
 				return;
 			}
@@ -395,6 +405,33 @@ export class ConversationState {
 			this.#syncCache();
 			throw err;
 		}
+	}
+
+	markMessageAsUnsent(messageId: string) {
+		const msg = this.messages.find((m) => m.messageId === messageId);
+		let revert: () => void = () => {};
+		if (msg) {
+			const original = {
+				unsent: msg.unsent,
+				type: msg.type,
+				body: msg.body,
+			};
+			msg.unsent = true;
+			msg.type = "Unsent";
+			msg.body = null;
+			this.#syncCache();
+			this.#updatePreview(msg);
+			revert = () => {
+				msg.unsent = original.unsent;
+				msg.type = original.type;
+				msg.body = original.body;
+				this.#syncCache();
+				this.#updatePreview(msg);
+			};
+		}
+		return {
+			revert,
+		};
 	}
 }
 

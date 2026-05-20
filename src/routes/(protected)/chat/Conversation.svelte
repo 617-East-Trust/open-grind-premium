@@ -67,16 +67,18 @@
 				"font-medium text-white": conversation.data.unreadCount > 0,
 			}}
 		>
-			{#if preview.text !== null}
-				{preview.text}
-			{:else if preview.albumId !== null}
-				Album
-			{:else if preview.imageHash !== null || preview.type === "Image"}
-				Photo
+			{#if preview !== null}
+				{#if preview.text !== null}
+					{preview.text}
+				{:else if preview.albumId !== null}
+					Album
+				{:else if preview.imageHash !== null || preview.type === "Image"}
+					Photo
+				{:else}
+					<span class="preview-not-available"> Preview not available </span>
+				{/if}
 			{:else}
-				<span class="font-normal tracking-tight italic text-muted-foreground">
-					Preview not available
-				</span>
+				<span class="preview-not-available"> Preview not available </span>
 			{/if}
 		</Item.Description>
 	</Item.Content>
@@ -118,3 +120,10 @@
 		{@render avatar()}
 	</a>
 </Item.Root>
+
+<style lang="postcss">
+	@reference "$layout";
+	.preview-not-available {
+		@apply font-normal tracking-tight italic text-muted-foreground;
+	}
+</style>
