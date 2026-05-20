@@ -8,6 +8,7 @@
 	import { getMyProfile } from "$lib/api/profile";
 	import ProgressiveBlur from "$lib/components/ProgressiveBlur.svelte";
 	import { tabsListVariants } from "$lib/components/ui/tabs";
+	import UserAvatar from "$lib/components/UserAvatar.svelte";
 
 	const myProfilePhotos = $derived(
 		getMyProfile().then((profile) => profile.medias),
@@ -40,7 +41,10 @@
 			<DropIcon weight="fill" />
 			Right Now
 		</a>
-		<a href="/interest" data-active={page.route.id === "/(protected)/(navbar)/interest"}>
+		<a
+			href="/interest"
+			data-active={page.route.id === "/(protected)/(navbar)/interest"}
+		>
 			<FireIcon weight="fill" />
 			Interest
 		</a>
@@ -62,18 +66,13 @@
 		]}
 	>
 		{#await myProfilePhotos then photos}
-			{@const mainPhoto = photos[0]}
-			{#if mainPhoto}
-				<img
-					src="https://cdns.grindr.com/images/thumb/320x320/{mainPhoto.mediaHash}"
-					alt=""
-					width="56"
-					height="56"
-					class="rounded-full bg-neutral-600 border-transparent object-cover object-center"
-				/>
-			{/if}
+			{@const mainPhoto = photos[0] as { mediaHash: string } | undefined}
+			<UserAvatar
+				mediaHash={mainPhoto?.mediaHash ?? null}
+				class="size-full *:rounded-full"
+				size="lg"
+			/>
 		{/await}
-		<!-- TODO: merge all avatars with fallbacks into single component -->
 	</a>
 </ProgressiveBlur>
 

@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { env } from "$env/dynamic/public";
-	import { UserIcon } from "phosphor-svelte";
-
 	import { Badge } from "$lib/components/ui/badge";
+	import UserAvatar from "$lib/components/UserAvatar.svelte";
 
 	let {
 		id,
@@ -25,26 +23,7 @@
 
 <a href="/profile/{id}" class="aspect-square relative flex items-end">
 	<div class="absolute w-full h-full bg-stone-700">
-		{#if medias && profilePicture}
-			<img
-				src="https://cdns.grindr.com/images/thumb/320x320/{profilePicture.mediaHash}"
-				alt="Profile avatar"
-				class={[
-					"w-full h-full",
-					{
-						"blur-2xl": env.PUBLIC_ENABLE_BLUR_EFFECTS,
-					},
-				]}
-				loading="lazy"
-				draggable="false"
-			/>
-		{:else}
-			<UserIcon
-				weight="fill"
-				color="var(--color-stone-400)"
-				class="size-3/4 top-1/2 left-1/2 -translate-1/2 absolute"
-			/>
-		{/if}
+		<UserAvatar mediaHash={profilePicture?.mediaHash ?? null} />
 	</div>
 	{#if distance}
 		<span

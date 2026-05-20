@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { page } from "$app/state";
-	import { UserIcon } from "phosphor-svelte";
 
 	import DisplayName from "$lib/components/DisplayName.svelte";
 	import * as Avatar from "$lib/components/ui/avatar";
 	import { Badge } from "$lib/components/ui/badge";
 	import * as Item from "$lib/components/ui/item";
+	import UserAvatar from "$lib/components/UserAvatar.svelte";
 	import type { Conversation } from "$lib/model/conversation";
 	import ConversationRelativeTimeDynamic from "./ConversationRelativeTimeDynamic.svelte";
 
@@ -26,27 +26,10 @@
 {#snippet avatar()}
 	<Item.Media class="p-2 translate-y-0! rounded-2xl relative">
 		<Avatar.Root class="size-20 after:rounded-xl">
-			{#if conversation.data.unreadCount > 0}
-				<Badge
-					class="px-[5.5px] @[9rem]:hidden absolute right-0 top-0 translate-x-1/4 -translate-y-1/4"
-				>
-					{conversation.data.unreadCount}
-				</Badge>
-			{/if}
-			{#if participant.primaryMediaHash}
-				<Avatar.Image
-					src="https://cdns.grindr.com/images/thumb/320x320/{participant.primaryMediaHash}"
-					alt="Avatar"
-					class="rounded-xl"
-				/>
-			{/if}
-			<Avatar.Fallback class="bg-neutral-700 rounded-xl">
-				<UserIcon
-					weight="fill"
-					color="var(--color-stone-400)"
-					class="size-10"
-				/>
-			</Avatar.Fallback>
+			<UserAvatar
+				mediaHash={participant.primaryMediaHash ?? null}
+				class="rounded-xl bg-neutral-700 *:rounded-xl size-20"
+			/>
 		</Avatar.Root>
 	</Item.Media>
 {/snippet}

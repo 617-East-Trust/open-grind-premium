@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { ArrowLeftIcon, UserIcon } from "phosphor-svelte";
+	import { ArrowLeftIcon } from "phosphor-svelte";
 
 	import DisplayName from "$lib/components/DisplayName.svelte";
 	import ProgressiveBlur from "$lib/components/ProgressiveBlur.svelte";
 	import * as Avatar from "$lib/components/ui/avatar";
 	import * as Card from "$lib/components/ui/card";
 	import { Skeleton } from "$lib/components/ui/skeleton";
+	import UserAvatar from "$lib/components/UserAvatar.svelte";
 	import type { ConversationState } from "./conversation-state.svelte";
 
 	let { conversationState }: { conversationState: ConversationState } =
@@ -37,20 +38,11 @@
 		<a href="/profile/{profile.profileId}" class="flex-1 ps-0 py-4 pe-4">
 			<Card.Header class="flex items-center gap-4 px-0">
 				<Avatar.Root class="size-[37.5px] after:rounded-full">
-					{#if profile.mediaHash}
-						<Avatar.Image
-							src="https://cdns.grindr.com/images/thumb/75x75/{profile.mediaHash}"
-							alt="Avatar"
-							class="rounded-full"
-						/>
-					{/if}
-					<Avatar.Fallback class="bg-neutral-700 rounded-full">
-						<UserIcon
-							weight="fill"
-							color="var(--color-stone-400)"
-							class="size-5"
-						/>
-					</Avatar.Fallback>
+					<UserAvatar
+						mediaHash={profile.mediaHash ?? null}
+						class="*:rounded-full size-full"
+						size="lg"
+					/>
 				</Avatar.Root>
 				<div class="flex flex-col min-w-0">
 					<Card.Title

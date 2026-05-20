@@ -5,6 +5,7 @@
 	import DisplayName from "$lib/components/DisplayName.svelte";
 	import * as Item from "$lib/components/ui/item";
 	import { Skeleton } from "$lib/components/ui/skeleton";
+	import UserAvatar from "$lib/components/UserAvatar.svelte";
 
 	let {
 		id,
@@ -27,12 +28,10 @@
 				{#await myProfilePhotos then photos}
 					{@const mainPhoto = photos[0]}
 					{#if mainPhoto}
-						<img
-							src="https://cdns.grindr.com/images/thumb/320x320/{mainPhoto.mediaHash}"
-							alt=""
-							width="56"
-							height="56"
-							class="rounded-full bg-neutral-600 border-transparent object-cover object-center"
+						<UserAvatar
+							mediaHash={mainPhoto?.mediaHash ?? null}
+							class="size-full *:rounded-full"
+							size="lg"
 						/>
 					{/if}
 				{/await}
