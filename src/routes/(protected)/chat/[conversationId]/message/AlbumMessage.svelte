@@ -1,11 +1,12 @@
 <script lang="ts">
 	import "photoswipe/style.css";
-	import { ImagesIcon, LockIcon, VideoIcon } from "phosphor-svelte";
+	import { ImagesIcon, VideoIcon } from "phosphor-svelte";
 	import { toast } from "svelte-sonner";
 	import type PhotoSwipeLightbox from "photoswipe/lightbox";
 
 	import { type AlbumContentResponse, getAlbumContent } from "$lib/api/album";
 	import type { AlbumMessage } from "$lib/model/message";
+	import LockedMedia from "../LockedMedia.svelte";
 	import { MessageMediaState } from "./message-media.svelte";
 
 	let { message }: { message: AlbumMessage["body"] } = $props();
@@ -224,14 +225,7 @@
 	</button>
 {:else}
 	<div class={[className, contentClass]} bind:this={media.el}>
-		<div
-			class={[
-				"size-full flex justify-center items-center bg-card-foreground/10 rounded-xl",
-				media.cornerClass,
-			]}
-		>
-			<LockIcon weight="fill" size={36} color="var(--color-neutral-600)" />
-		</div>
+		<LockedMedia class={media.cornerClass} />
 		{@render media.adornments?.()}
 	</div>
 {/if}

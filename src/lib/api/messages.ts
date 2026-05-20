@@ -38,6 +38,22 @@ export async function getConversationMessages({
 	return messages;
 }
 
+export async function getSingleMessage({
+	conversationId,
+	messageId,
+}: {
+	conversationId: string;
+	messageId: number;
+}) {
+	const messages = await fetchRest(
+		`/v4/chat/conversation/${conversationId}/message/${messageId}`,
+		{ method: "GET" },
+	).then((res) =>
+		res.jsonParsed(z.object({ message: apiResponseMessageSchema })),
+	);
+	return messages;
+}
+
 export async function sendMessage({
 	toUserId,
 	message,

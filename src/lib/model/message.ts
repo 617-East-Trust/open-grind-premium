@@ -168,10 +168,8 @@ export type GiphyMessage = z.infer<typeof giphyMessageSchema>;
 const imageBaseMessageSchema = messageBaseSchema.safeExtend({
 	body: z.object({
 		mediaId: z.number().int().nonnegative(),
-		url: z.url(),
 		width: z.number().int().nonnegative().nullable(),
 		height: z.number().int().nonnegative().nullable(),
-		imageHash: z.union([mediaHashPrivateSchema, mediaHashPublicSchema]),
 	}),
 });
 
@@ -179,6 +177,8 @@ export const imageMessageSchema = imageBaseMessageSchema.safeExtend({
 	type: z.literal("Image"),
 	body: z.object({
 		...imageBaseMessageSchema.shape.body.shape,
+		url: z.url(),
+		imageHash: z.union([mediaHashPrivateSchema, mediaHashPublicSchema]),
 		takenOnGrindr: z.boolean(),
 		createdAt: unixTimestampMsSchema.nullable(),
 	}),
@@ -190,6 +190,7 @@ export const expiringImageMessageSchema = imageBaseMessageSchema.safeExtend({
 	type: z.literal("ExpiringImage"),
 	body: z.object({
 		...imageBaseMessageSchema.shape.body.shape,
+		url: z.url().nullable(),
 		viewsRemaining: z.number().int().nonnegative().nullable(),
 	}),
 });

@@ -163,13 +163,13 @@ URLs point at `https://media0.giphy.com`
 ### `"Image"`
 
 - `mediaId` — number
-- `url` — string
 - `width` — integer or `null`
 - `height` — integer or `null`
-- `imageHash` — string
 
 Additionally, only for regular images:
 
+- `url` — string
+- `imageHash` — string
 - `takenOnGrindr` — boolean or `null`
 - `createdAt` — number or `null`
 
@@ -184,7 +184,10 @@ Additionally, only for regular images:
 ### `"ExpiringImage"`
 
 - *everything from ["Image" message type](#image)*
+- `url` — `null`
 - `viewsRemaining` — number or `null`
+
+To get a single-use expiring image URL, you need to call [Get a single message in a conversation](#get-a-single-message-in-a-conversation). After one call, `url` in message body will be replaced with `null` and image will no longer be viewable.
 
 ### `"Location"`
 

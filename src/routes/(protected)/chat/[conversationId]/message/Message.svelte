@@ -6,6 +6,7 @@
 	import type { ApiResponseMessage } from "$lib/model/message";
 	import AlbumMessage from "./AlbumMessage.svelte";
 	import { setMessageContext } from "./context";
+	import ExpiringImageMessage from "./ExpiringImageMessage.svelte";
 	import ImageMessage from "./ImageMessage.svelte";
 	import MessageContextMenu from "./MessageContextMenu.svelte";
 	import MessageDateGroup from "./MessageDateGroup.svelte";
@@ -168,8 +169,14 @@
 	<MessageWrapper {clone} {setRef} {adornments}>
 		{#if message.type === "Text"}
 			<TextMessage message={message.body} />
-		{:else if message.type === "Image" || message.type === "ExpiringImage"}
+		{:else if message.type === "Image"}
 			<ImageMessage message={message.body} />
+		{:else if message.type === "ExpiringImage"}
+			<ExpiringImageMessage
+				message={message.body}
+				conversationId={message.conversationId}
+				messageId={message.messageId}
+			/>
 		{:else if message.type === "Album" || message.type === "ExpiringAlbum" || message.type === "ExpiringAlbumV2"}
 			<AlbumMessage message={message.body} />
 		{:else if message.type === "Unsent"}

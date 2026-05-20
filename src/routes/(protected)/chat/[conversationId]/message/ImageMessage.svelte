@@ -2,13 +2,14 @@
 	import "photoswipe/style.css";
 	import type PhotoSwipeLightbox from "photoswipe/lightbox";
 
-	import type { ExpiringImageMessage, ImageMessage } from "$lib/model/message";
+	import type { ImageMessage } from "$lib/model/message";
 	import { MessageMediaState } from "./message-media.svelte";
 
 	let {
 		message,
-	}: { message: ImageMessage["body"] | ExpiringImageMessage["body"] } =
-		$props();
+	}: {
+		message: ImageMessage["body"];
+	} = $props();
 
 	const media = new MessageMediaState();
 
