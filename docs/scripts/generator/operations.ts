@@ -1,0 +1,271 @@
+import type { Context, Op } from "./context";
+import {
+	describeType,
+	flattenSchema,
+	isEmptyObjectSchema,
+	isPlaceholderBody,
+	isPlaceholderSchema,
+	renderProperty,
+} from "./properties";
+import { urlForSchema, withWipSuffix } from "./slugs";
+import type { Parameter, ParameterOrRef, Schema } from "./types";
+
+const HTTP_DEFAULT_DESCRIPTIONS = new Set([
+	"OK",
+	"Created",
+	"Accepted",
+	"No Content",
+	"Switching Protocols",
+	"",
+]);
+
+function humanizeOperationId(opId: string): string {
+	return opId
+		.replace(/([a-z])([A-Z])/g, "$1 $2")
+		.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+		.toLowerCase()
+		.replace(/^./, (c) => c.toUpperCase());
+}
+
+function resolveParam(ctx: Context, p: ParameterOrRef): Parameter | undefined {
+	if ("$ref" in p) {
+		const name = p.$ref.replace("#/components/parameters/", "");
+		return ctx.doc.components.parameters?.[name];
+	}
+	return p;
+}
+
+function seeAlsoText(link: string): string {
+	const anchor = link.split("#")[1];
+	if (!anchor) return link;
+	return anchor.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
+
+function displayOf(ctx: Context, name: string): string {
+	return ctx.doc.components.schemas[name]?.["x-display-name"] ?? name;
+}
+
+function refName(ref: string): string {
+	return ref.replace("#/components/schemas/", "");
+}
+
+export function renderBodySchema(
+	ctx: Context,
+	schema: Schema | undefined,
+): string[] {
+	if (!schema) return [];
+	if (isPlaceholderSchema(schema)) return [];
+	let s = schema;
+	if (s.$ref) {
+		const name = refName(s.$ref);
+		const resolved = ctx.doc.components.schemas[name];
+		if (resolved) {
+			if ((resolved.allOf || resolved.oneOf) && ctx.renderedSchemas.has(name)) {
+				return [`[${displayOf(ctx, name)}](${urlForSchema(ctx, name)})`];
+			}
+			s = resolved;
+		}
+	}
+	if (s.type === "array") {
+		const itemRef = s.items?.$ref;
+		if (itemRef) {
+			const name = refName(itemRef);
+			if (ctx.renderedSchemas.has(name)) {
+				return [
+					`Array of [${displayOf(ctx, name)}](${urlForSchema(ctx, name)}).`,
+				];
+			}
+			const body = flattenSchema(ctx.doc.components.schemas[name]);
+			if (
+				body &&
+				(Object.keys(body.properties).length || body.__allOfRefs.length)
+			) {
+				const out = ["Array of objects:"];
+				for (const r of body.__allOfRefs) {
+					out.push(
+						`- *everything from [${displayOf(ctx, r)}](${urlForSchema(ctx, r)})*`,
+					);
+				}
+				for (const [k, v] of Object.entries(body.properties)) {
+					out.push(renderProperty(ctx, k, v, 0, body.required.includes(k)));
+				}
+				return out;
+			}
+		}
+		if (s.items?.type === "object" && s.items.properties) {
+			const out = ["Array of objects:"];
+			const reqList = s.items.required ?? [];
+			for (const [k, v] of Object.entries(s.items.properties)) {
+				out.push(renderProperty(ctx, k, v, 0, reqList.includes(k)));
+			}
+			return out;
+		}
+		const inner = describeType(ctx, s.items);
+		return [`Array of ${inner}.`];
+	}
+	if (s.type === "object" && s.properties) {
+		const reqList = s.required ?? [];
+		return Object.entries(s.properties).map(([k, v]) =>
+			renderProperty(ctx, k, v, 0, reqList.includes(k)),
+		);
+	}
+	const variants = s.oneOf ?? s.anyOf;
+	if (variants) {
+		const out = ["One of:"];
+		for (const v of variants) {
+			if (v.$ref) {
+				const name = refName(v.$ref);
+				out.push(`- [${displayOf(ctx, name)}](${urlForSchema(ctx, name)})`);
+			}
+		}
+		return out;
+	}
+	if (s.allOf) {
+		const out: string[] = [];
+		for (const piece of s.allOf) {
+			if (piece.$ref) {
+				const name = refName(piece.$ref);
+				out.push(
+					`- *everything from [${displayOf(ctx, name)}](${urlForSchema(ctx, name)})*`,
+				);
+			} else if (piece.type === "object" && piece.properties) {
+				const reqList = piece.required ?? [];
+				for (const [k, v] of Object.entries(piece.properties)) {
+					out.push(renderProperty(ctx, k, v, 0, reqList.includes(k)));
+				}
+			}
+		}
+		return out;
+	}
+	const t = describeType(ctx, s);
+	return t ? [t] : [];
+}
+
+export function renderOperation(
+	ctx: Context,
+	entry: Op,
+	tagIsWip: boolean,
+): string {
+	const { path, method, op } = entry;
+	const summary = op.summary ?? humanizeOperationId(op.operationId);
+	const wip = op["x-wip"] === true;
+	const lines: string[] = [`## ${withWipSuffix(summary, wip)}`, ""];
+
+	if (wip && !tagIsWip) {
+		lines.push("> [!NOTE] This endpoint hasn't been researched yet", "");
+	}
+
+	if (op.security && op.security.length) {
+		lines.push("Requires [Authorization](/grindr-api/api-authorization).", "");
+	}
+
+	if (op.description) lines.push(op.description, "");
+	if (op["x-notes"]) for (const n of op["x-notes"]) lines.push(n, "");
+	if (op["x-idempotent"])
+		lines.push("Repeated requests are completed without errors.", "");
+	if (op["x-paid"]) lines.push("Paid feature.", "");
+	if (op["x-legacy"]) lines.push("Legacy endpoint.", "");
+
+	if (op["x-see-also"]?.length) {
+		for (const link of op["x-see-also"])
+			lines.push(`See also: [${seeAlsoText(link)}](${link})`);
+		lines.push("");
+	}
+
+	lines.push("```", `${method.toUpperCase()} ${path}`, "```", "");
+
+	const allParams: Parameter[] = [];
+	for (const p of op.parameters ?? []) {
+		const resolved = resolveParam(ctx, p);
+		if (resolved) allParams.push(resolved);
+	}
+	const queryParams = allParams.filter((p) => p.in === "query");
+	const headerParams = allParams.filter((p) => p.in === "header");
+
+	if (queryParams.length) {
+		const allOptional = queryParams.every((p) => !p.required);
+		lines.push(allOptional ? "Query (optional):" : "Query:", "");
+		for (const p of queryParams)
+			lines.push(renderProperty(ctx, p.name, p.schema ?? {}, 0, !!p.required));
+		lines.push("");
+	}
+
+	if (headerParams.length) {
+		lines.push("Headers:", "");
+		for (const p of headerParams)
+			lines.push(renderProperty(ctx, p.name, p.schema ?? {}, 0, !!p.required));
+		lines.push("");
+	}
+
+	if (op.requestBody?.content && !isPlaceholderBody(op.requestBody)) {
+		const c = op.requestBody.content;
+		const json = c["application/json"];
+		const binary = c["application/octet-stream"];
+		const multipart = c["multipart/form-data"];
+		const formUrl = c["application/x-www-form-urlencoded"];
+		const optional = op.requestBody.required === false;
+		lines.push(optional ? "Body (optional):" : "Body:", "");
+		if (json) lines.push(...renderBodySchema(ctx, json.schema));
+		else if (binary) lines.push("Binary file.");
+		else if (multipart) {
+			lines.push("Content-Type: `multipart/form-data`", "");
+			lines.push(...renderBodySchema(ctx, multipart.schema));
+		} else if (formUrl) {
+			lines.push("Content-Type: `application/x-www-form-urlencoded`", "");
+			lines.push(...renderBodySchema(ctx, formUrl.schema));
+		}
+		lines.push("");
+	}
+
+	const successCode = ["200", "201", "202", "204"].find(
+		(c) => op.responses?.[c],
+	);
+	if (successCode && op.responses) {
+		const resp = op.responses[successCode];
+		if (resp) {
+			const json = resp.content?.["application/json"];
+			const binary = resp.content?.["application/octet-stream"];
+			const images =
+				resp.content?.["image/jpeg"] ?? resp.content?.["image/png"];
+			if (json) {
+				if (isPlaceholderSchema(json.schema)) {
+					void 0;
+				} else if (
+					isEmptyObjectSchema(json.schema) &&
+					resp.description &&
+					!HTTP_DEFAULT_DESCRIPTIONS.has(resp.description)
+				) {
+					lines.push("Response:", "", resp.description, "");
+				} else {
+					lines.push("Response:", "");
+					lines.push(...renderBodySchema(ctx, json.schema));
+					lines.push("");
+				}
+			} else if (binary) lines.push("Response:", "", "Binary content.", "");
+			else if (images) lines.push("Response:", "", "Image binary.", "");
+			else if (
+				resp.description &&
+				!HTTP_DEFAULT_DESCRIPTIONS.has(resp.description)
+			) {
+				lines.push("Response:", "", resp.description, "");
+			}
+		}
+	}
+
+	const errorEntries = Object.entries(op.responses ?? {})
+		.filter(([code]) => /^[45]\d{2}$/.test(code))
+		.flatMap(([code, resp]) =>
+			resp.description ? [{ code, desc: resp.description }] : [],
+		);
+	const xErrors = op["x-errors"]
+		? Object.entries(op["x-errors"]).map(([k, v]) => ({ code: k, desc: v }))
+		: [];
+	if (errorEntries.length || xErrors.length) {
+		lines.push("Errors:", "");
+		for (const e of errorEntries) lines.push(`- \`${e.code}\` — ${e.desc}`);
+		for (const e of xErrors) lines.push(`- \`${e.code}\` — ${e.desc}`);
+		lines.push("");
+	}
+
+	return lines.join("\n").trimEnd() + "\n";
+}
