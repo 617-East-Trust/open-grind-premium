@@ -9653,7 +9653,7 @@
 				"type": "string",
 				"minLength": 12,
 				"maxLength": 12,
-				"description": "Grindr requires geohash to be exactly 12 characters long. <https://en.wikipedia.org/wiki/Geohash>\n\nExample: `ezjmgyern222` (Madrid, Spain)\n\n> [!WARNING]: Setting geohash inside of United Kingdom will lead to the account being locked and resetting geohash being impossible until you submit legal documents for age verification.\n\nGeohash explorer: <https://geohash.softeng.co/>",
+				"description": "Grindr requires geohash to be exactly 12 characters long. <https://en.wikipedia.org/wiki/Geohash>\n\nExample: `ezjmgyern222` (Madrid, Spain)\n\n> [!WARNING] Setting geohash inside of United Kingdom will lead to the account being locked and resetting geohash being impossible until you submit legal documents for age verification.\n\nGeohash explorer: <https://geohash.softeng.co/>",
 				"x-render-on-tag": "browse/location"
 			},
 			"ConversationId": {
