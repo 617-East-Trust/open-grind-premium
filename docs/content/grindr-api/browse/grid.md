@@ -33,8 +33,8 @@ GET /v3/cascade
 Query:
 
 - *everything from [CascadeQuery](/grindr-api/browse/grid#cascadequery)*
-- `exploreUuid` — string, optional
-- `sexualHealth` — string, optional
+- `exploreUuid` — string, unknown, WIP, optional
+- `sexualHealth` — see [Sexual health](/grindr-api/users/profiles#sexual-health), optional
 
 Response:
 

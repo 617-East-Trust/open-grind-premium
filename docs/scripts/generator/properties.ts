@@ -175,7 +175,9 @@ export function renderPropertyRhs(
 			? desc
 			: type
 				? `${type}, ${desc}`
-				: `unknown, ${desc}`;
+				: desc.trimStart().toLowerCase().startsWith("unknown")
+					? desc
+					: `unknown, ${desc}`;
 		return body + nullableSuffix(body, !!schema.nullable);
 	}
 	const base = type || "unknown";

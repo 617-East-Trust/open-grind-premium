@@ -25,5 +25,3 @@ Query (optional):
 - `rating` — string, optional
 - `q` — string, optional
 - `offset` — integer, optional
-
-## GiphyResponse

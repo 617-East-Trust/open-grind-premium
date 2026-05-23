@@ -50,7 +50,3 @@ Geohash explorer: <https://geohash.softeng.co/>
 - `lon` — number
 - `placeId` — string with number
 - `importance` — float
-
-## LocationUpdateRequest
-
-- `geohash` — [Geohash](/grindr-api/browse/location#geohash)

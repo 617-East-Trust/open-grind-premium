@@ -64,8 +64,6 @@ POST /v3.1/store/googleplay/purchases/restorations
 
 Body:
 
-Array of [UndocumentedObject](/grindr-api/shared-types#undocumentedobject).
-
 ## Submit consumable purchase token, WIP
 
 ```

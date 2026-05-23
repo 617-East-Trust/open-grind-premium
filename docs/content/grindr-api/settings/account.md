@@ -159,7 +159,7 @@ GET /v1/visiting/home
 
 Response:
 
-- `name` — [human-readable name](/grindr-api/browse/location#search-places-by-name) of location
+- `name` — string, [human-readable name](/grindr-api/browse/location#search-places-by-name) of location
 - `lat` — float
 - `lon` — float
 
@@ -178,7 +178,7 @@ Body:
 
 Response:
 
-- `name` — [human-readable name](/grindr-api/browse/location#search-places-by-name) of location
+- `name` — string, [human-readable name](/grindr-api/browse/location#search-places-by-name) of location
 - `lat` — float
 - `lon` — float
 
@@ -205,7 +205,7 @@ Response:
 
 ## HomeLocation
 
-- `name` — [human-readable name](/grindr-api/browse/location#search-places-by-name) of location
+- `name` — string, [human-readable name](/grindr-api/browse/location#search-places-by-name) of location
 - `lat` — float
 - `lon` — float
 

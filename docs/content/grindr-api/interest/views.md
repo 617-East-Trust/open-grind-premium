@@ -42,7 +42,7 @@ POST /v4/views
 
 Body:
 
-- `viewedProfileIds` — array of strings
+- `viewedProfileIds` — array of strings with numeric profile IDs
 - `foundVia` — [ViewSourceEnum](/grindr-api/interest/views#viewsourceenum) or `null`
 
 ## Record single profile view, WIP
@@ -76,7 +76,7 @@ View source.
 
 - `DISCOVER`
 - `FOR_YOU`
-- `UNKNOWN` — UNKNOWN (fallback)
+- `UNKNOWN` — (fallback)
 
 ## ViewsEyeballResponse
 

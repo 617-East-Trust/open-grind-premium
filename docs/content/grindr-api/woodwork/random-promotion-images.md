@@ -16,14 +16,7 @@ Query (optional):
 
 Response:
 
-- `images` — array of objects
-  - `url` — string
-  - `id` — string, e.g. `"WoodworkImage1"`
-- `collection` — string, always `foryou`
-
-## RandomPromotionImagesResponse
-
-- `images` — array of objects
+- `images` — array of objects with length `count`
   - `url` — string
   - `id` — string, e.g. `"WoodworkImage1"`
 - `collection` — string, always `foryou`

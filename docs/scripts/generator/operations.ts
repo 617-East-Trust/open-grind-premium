@@ -118,6 +118,12 @@ export function renderBodySchema(
 			}
 			return out;
 		}
+		const resolveForArray = (name: string): Schema | undefined =>
+			ctx.doc.components.schemas[name];
+		if (isPlaceholderSchema(s.items, resolveForArray)) {
+			const original = s.items?.["x-original-type"];
+			return original ? [`Response type: \`${original}\` (undocumented).`] : [];
+		}
 		const inner = describeType(ctx, s.items);
 		return [`Array of ${inner}.`];
 	}

@@ -221,7 +221,7 @@ Response:
 
 - `processing` — boolean
 
-## Pics, WIP, WIP
+## Pics, WIP
 
 > [!NOTE] This endpoint hasn't been researched yet
 
@@ -304,7 +304,7 @@ Body:
 
 - `profiles` — array of objects
   - `profileId` — long integer
-  - `shareId` — integer
+  - `shareId` — integer, can be `0`
 
 Response:
 
@@ -398,7 +398,7 @@ Response:
 
 - `profileFeeds` — array of objects
   - `profileId` — integer
-  - `paywallStatus` — string
+  - `paywallStatus` — string, e.g. `ALLOW`
   - `seen` — boolean
   - `content` — object
   - `profile` — [PressieProfileMini](/grindr-api/messaging/albums#pressieprofilemini)
@@ -406,7 +406,7 @@ Response:
   - *everything from [AlbumPreview](/grindr-api/messaging/albums#albumpreview)*
   - `albumViewable` — boolean
   - `albumVersion` — integer
-  - `expiresat` — unix timestamp in milliseconds or `null`
+  - `expiresat` — unix timestamp in milliseconds; note: observed key spelling, may also appear as `expiresAt` or `null`
   - `expiresAt` — unix timestamp in milliseconds or `null`
   - `name` — string or `null`
   - `ownerProfileId` — integer
@@ -433,8 +433,8 @@ Response:
 - `albumPaywallContent` — array of objects
   - `albumId` — long integer
   - `profile` — [PressieProfileMini](/grindr-api/messaging/albums#pressieprofilemini)
-  - `paywallCoverUrl` — string
-  - `paywallUrls` — array of strings
+  - `paywallCoverUrl` — see [Media -> Signed CDN files](/grindr-api/media/signed-cdn-files)
+  - `paywallUrls` — see [Media -> Signed CDN files](/grindr-api/media/signed-cdn-files)
   - `albumsItemCount` — integer
 
 ## Pressie albums feed profile ID, WIP
@@ -503,7 +503,7 @@ Previously shared [albums in chat](/grindr-api/messaging/messages#albummessagebo
 - `thumbUrl` — string, unblurred preview, see [Media -> Signed CDN files](/grindr-api/media/signed-cdn-files)
 - `url` — string, original file, see [Media -> Signed CDN files](/grindr-api/media/signed-cdn-files), may be `""` if `remainingViews` is 0
 - `processing` — boolean
-- `rejectionId` — unknown, unknown or `null`
+- `rejectionId` — unknown or `null`
 
 ## MyAlbum
 
@@ -565,7 +565,7 @@ Maximum length: 255 UTF-8 bytes, which is 255 characters for ASCII strings (1 AS
 
 - `profiles` — array of objects
   - `profileId` — long integer
-  - `shareId` — integer
+  - `shareId` — integer, can be `0`
 
 ## AlbumStorageLimits
 
@@ -594,7 +594,7 @@ Maximum length: 255 UTF-8 bytes, which is 255 characters for ASCII strings (1 AS
 
 - `profileFeeds` — array of objects
   - `profileId` — integer
-  - `paywallStatus` — string
+  - `paywallStatus` — string, e.g. `ALLOW`
   - `seen` — boolean
   - `content` — object
   - `profile` — [PressieProfileMini](/grindr-api/messaging/albums#pressieprofilemini)
@@ -602,7 +602,7 @@ Maximum length: 255 UTF-8 bytes, which is 255 characters for ASCII strings (1 AS
   - *everything from [AlbumPreview](/grindr-api/messaging/albums#albumpreview)*
   - `albumViewable` — boolean
   - `albumVersion` — integer
-  - `expiresat` — unix timestamp in milliseconds or `null`
+  - `expiresat` — unix timestamp in milliseconds; note: observed key spelling, may also appear as `expiresAt` or `null`
   - `expiresAt` — unix timestamp in milliseconds or `null`
   - `name` — string or `null`
   - `ownerProfileId` — integer
@@ -623,8 +623,8 @@ Maximum length: 255 UTF-8 bytes, which is 255 characters for ASCII strings (1 AS
 - `albumPaywallContent` — array of objects
   - `albumId` — long integer
   - `profile` — [PressieProfileMini](/grindr-api/messaging/albums#pressieprofilemini)
-  - `paywallCoverUrl` — string
-  - `paywallUrls` — array of strings
+  - `paywallCoverUrl` — see [Media -> Signed CDN files](/grindr-api/media/signed-cdn-files)
+  - `paywallUrls` — see [Media -> Signed CDN files](/grindr-api/media/signed-cdn-files)
   - `albumsItemCount` — integer
 
 ## AlbumCoverUrl

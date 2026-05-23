@@ -53,5 +53,3 @@ If subscription is not purchased,
 ```
 POST /v1/me/pass/{profileId}
 ```
-
-## DiscoverResponse

@@ -14,14 +14,16 @@ Response:
 
 - `lastUpdateTime` — unix timestamp in milliseconds
 - `gaymoji` — array of objects
-  - `name` — string
-  - `id` — string
+  - `name` — string, unique identifier consisting of alphanumeric characters, hyphens and underscores
+  - `id` — string, same as `name` + `.png`
   - `category` — [GaymojiCategory](/grindr-api/media/public-cdn-files#gaymojicategory)
 - `category` — array of objects
   - `name` — [GaymojiCategory](/grindr-api/media/public-cdn-files#gaymojicategory)
-  - `expiredTime` — unix timestamp in milliseconds
+  - `expiredTime` — unix timestamp in milliseconds, may be `0`
 
 ## Get gaymoji asset
+
+ID must include file extension (e.g. `name.png`).
 
 ```
 GET /grindr/chat/gaymoji/{id}
@@ -66,17 +68,6 @@ GET /images/thumb/{size}/{mediaHash}
 Response:
 
 Image binary.
-
-## GaymojiManifest
-
-- `lastUpdateTime` — unix timestamp in milliseconds
-- `gaymoji` — array of objects
-  - `name` — string
-  - `id` — string
-  - `category` — [GaymojiCategory](/grindr-api/media/public-cdn-files#gaymojicategory)
-- `category` — array of objects
-  - `name` — [GaymojiCategory](/grindr-api/media/public-cdn-files#gaymojicategory)
-  - `expiredTime` — unix timestamp in milliseconds
 
 ## GaymojiCategory
 

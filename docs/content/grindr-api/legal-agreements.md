@@ -16,6 +16,8 @@ POST /v5/legal-agreements/subscriber-sponsored-content
 
 ## Delete subscriber sponsored content agreement, WIP
 
+Note: this DELETE endpoint accepts a request body.
+
 ```
 DELETE /v5/legal-agreements/subscriber-sponsored-content
 ```

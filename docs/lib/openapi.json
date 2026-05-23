@@ -27,7 +27,8 @@
 			"x-wip": true
 		},
 		{
-			"name": "drawer"
+			"name": "drawer",
+			"x-wip": true
 		},
 		{
 			"name": "notifications"
@@ -1165,7 +1166,10 @@
 						"description": "OK"
 					}
 				},
-				"x-wip": true
+				"x-wip": true,
+				"x-notes": [
+					"Note: this DELETE endpoint accepts a request body."
+				]
 			}
 		},
 		"/v1/agreements/ban": {
@@ -3858,14 +3862,16 @@
 						"in": "query",
 						"schema": {
 							"type": "string"
-						}
+						},
+						"description": "unknown, WIP"
 					},
 					{
 						"name": "sexualHealth",
 						"in": "query",
 						"schema": {
 							"type": "string"
-						}
+						},
+						"description": "see [Sexual health](/grindr-api/users/profiles#sexual-health)"
 					}
 				],
 				"responses": {
@@ -5004,7 +5010,8 @@
 										"items": {
 											"type": "string",
 											"pattern": "^[0-9]+$"
-										}
+										},
+										"description": "array of strings with numeric profile IDs"
 									},
 									"foundVia": {
 										"allOf": [
@@ -5161,7 +5168,10 @@
 						"description": "OK"
 					}
 				},
-				"summary": "Get gaymoji asset"
+				"summary": "Get gaymoji asset",
+				"x-notes": [
+					"ID must include file extension (e.g. `name.png`)."
+				]
 			}
 		},
 		"/images/profile/{size}/{mediaHash}": {
@@ -7409,7 +7419,10 @@
 					}
 				},
 				"summary": "Track phrase usage frequency",
-				"description": "Doesn't appear to influence the phrase's sorting position in [Get saved phrases](/grindr-api/messaging/saved-phrases#get-saved-phrases) response. Increments value in [Get saved phrases (legacy)](/grindr-api/messaging/saved-phrases#get-saved-phrases-legacy) endpoint."
+				"description": "Doesn't appear to influence the phrase's sorting position in [Get saved phrases](/grindr-api/messaging/saved-phrases#get-saved-phrases) response. Increments value in [Get saved phrases (legacy)](/grindr-api/messaging/saved-phrases#get-saved-phrases-legacy) endpoint.",
+				"x-notes": [
+					"Response: Empty."
+				]
 			}
 		},
 		"/v3/users/password-validation": {
@@ -8116,7 +8129,10 @@
 					}
 				},
 				"x-wip": true,
-				"summary": "Spotify token"
+				"summary": "Spotify token",
+				"x-notes": [
+					"Body is URL-encoded (grant_type=authorization_code&code=...&redirect_uri=... or grant_type=refresh_token&refresh_token=... or grant_type=client_credentials)."
+				]
 			}
 		},
 		"/v3/me/profile": {
@@ -9673,7 +9689,7 @@
 				"x-enum-labels": {
 					"DISCOVER": "DISCOVER",
 					"FOR_YOU": "FOR_YOU",
-					"UNKNOWN": "UNKNOWN (fallback)"
+					"UNKNOWN": "(fallback)"
 				},
 				"x-render-on-tag": "interest/views"
 			},
@@ -9864,7 +9880,8 @@
 						"$ref": "#/components/schemas/Geohash"
 					}
 				},
-				"x-render-on-tag": "browse/location"
+				"x-render-on-tag": "browse/location",
+				"x-exclude-from-markdown": true
 			},
 			"SocialEvent": {
 				"type": "object",
@@ -10802,7 +10819,7 @@
 				"properties": {
 					"name": {
 						"type": "string",
-						"description": "[human-readable name](/grindr-api/browse/location#search-places-by-name) of location"
+						"description": "string, [human-readable name](/grindr-api/browse/location#search-places-by-name) of location"
 					},
 					"lat": {
 						"type": "number",
@@ -11279,7 +11296,8 @@
 									"format": "int64"
 								},
 								"shareId": {
-									"type": "integer"
+									"type": "integer",
+									"description": "can be `0`"
 								}
 							}
 						}
@@ -11373,7 +11391,8 @@
 									"type": "integer"
 								},
 								"paywallStatus": {
-									"type": "string"
+									"type": "string",
+									"description": "e.g. `ALLOW`"
 								},
 								"seen": {
 									"type": "boolean"
@@ -11410,7 +11429,8 @@
 													"$ref": "#/components/schemas/TimestampMs"
 												}
 											],
-											"nullable": true
+											"nullable": true,
+											"description": "unix timestamp in milliseconds; note: observed key spelling, may also appear as `expiresAt`"
 										},
 										"expiresAt": {
 											"allOf": [
@@ -11488,13 +11508,15 @@
 									"$ref": "#/components/schemas/PressieProfileMini"
 								},
 								"paywallCoverUrl": {
-									"type": "string"
+									"type": "string",
+									"description": "see [Media -> Signed CDN files](/grindr-api/media/signed-cdn-files)"
 								},
 								"paywallUrls": {
 									"type": "array",
 									"items": {
 										"type": "string"
-									}
+									},
+									"description": "see [Media -> Signed CDN files](/grindr-api/media/signed-cdn-files)"
 								},
 								"albumsItemCount": {
 									"type": "integer"
@@ -11573,7 +11595,8 @@
 						}
 					},
 					"messageId": {
-						"type": "string"
+						"type": "string",
+						"description": "see [Message](/grindr-api/messaging/messages#message) for format"
 					},
 					"chat1MessageId": {
 						"type": "string",
@@ -13230,7 +13253,8 @@
 			"DiscoverResponse": {
 				"type": "object",
 				"additionalProperties": true,
-				"x-render-on-tag": "browse/discover"
+				"x-render-on-tag": "browse/discover",
+				"x-exclude-from-markdown": true
 			},
 			"ChatSuggestionsResponse": {
 				"type": "object",
@@ -13278,10 +13302,12 @@
 							"type": "object",
 							"properties": {
 								"name": {
-									"type": "string"
+									"type": "string",
+									"description": "unique identifier consisting of alphanumeric characters, hyphens and underscores"
 								},
 								"id": {
-									"type": "string"
+									"type": "string",
+									"description": "same as `name` + `.png`"
 								},
 								"category": {
 									"$ref": "#/components/schemas/GaymojiCategory"
@@ -13298,13 +13324,19 @@
 									"$ref": "#/components/schemas/GaymojiCategory"
 								},
 								"expiredTime": {
-									"$ref": "#/components/schemas/TimestampMs"
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/TimestampMs"
+										}
+									],
+									"description": "unix timestamp in milliseconds, may be `0`"
 								}
 							}
 						}
 					}
 				},
-				"x-render-on-tag": "media/public-cdn-files"
+				"x-render-on-tag": "media/public-cdn-files",
+				"x-exclude-from-markdown": true
 			},
 			"GaymojiCategory": {
 				"type": "string",
@@ -13323,7 +13355,8 @@
 			"GiphyResponse": {
 				"type": "object",
 				"additionalProperties": true,
-				"x-render-on-tag": "gifs"
+				"x-render-on-tag": "gifs",
+				"x-exclude-from-markdown": true
 			},
 			"RandomPromotionImagesResponse": {
 				"type": "object",
@@ -13341,14 +13374,16 @@
 									"description": "e.g. `\"WoodworkImage1\"`"
 								}
 							}
-						}
+						},
+						"description": "array of objects with length `count`"
 					},
 					"collection": {
 						"type": "string",
 						"description": "always `foryou`"
 					}
 				},
-				"x-render-on-tag": "woodwork/random-promotion-images"
+				"x-render-on-tag": "woodwork/random-promotion-images",
+				"x-exclude-from-markdown": true
 			},
 			"RedDotListResponse": {
 				"type": "object",
@@ -13518,7 +13553,7 @@
 			},
 			"MediaState": {
 				"type": "string",
-				"description": "Public media in Grindr undergo through an automated moderation check before they appear in profile. State can be either `null` for medias uploaded privately ([chats](/grindr-api/messaging/albums#upload-media-to-an-album)) or one of the below for public-facing media.\n\n- `Pending` — awaiting moderation check\n\nWIP",
+				"description": "Public media in Grindr undergo through an automated moderation check before they appear in profile. State can be either `null` for medias uploaded privately ([chats](/grindr-api/messaging/albums#upload-media-to-an-album)) or one of the below for public-facing media.",
 				"enum": [
 					"Pending"
 				],

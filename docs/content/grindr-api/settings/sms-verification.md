@@ -75,6 +75,8 @@ POST /v4/recognition/face
 
 ## Spotify token, WIP
 
+Body is URL-encoded (grant_type=authorization_code&code=...&redirect_uri=... or grant_type=refresh_token&refresh_token=... or grant_type=client_credentials).
+
 ```
 POST /api/token
 ```

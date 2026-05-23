@@ -81,6 +81,8 @@ Requires [Authorization](/grindr-api/api-authorization).
 
 Doesn't appear to influence the phrase's sorting position in [Get saved phrases](/grindr-api/messaging/saved-phrases#get-saved-phrases) response. Increments value in [Get saved phrases (legacy)](/grindr-api/messaging/saved-phrases#get-saved-phrases-legacy) endpoint.
 
+Response: Empty.
+
 ```
 POST /v4/phrases/frequency/{id}
 ```

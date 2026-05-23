@@ -404,10 +404,10 @@ Empty type.
 - `reactions` — array of [MessageReaction](/grindr-api/messaging/messages#messagereaction)
 - `type` — string, see [Message type](/grindr-api/messaging/messages#message-type)
 - `body` — object with [Message contents](/grindr-api/messaging/messages#message-contents) or `null`
-- `replyToMessage` — unknown, unknown or `null`
+- `replyToMessage` — unknown or `null`
 - `dynamic` — boolean, unknown purpose, WIP
 - `chat1Type` — string, see [Message type](/grindr-api/messaging/messages#message-type)
-- `replyPreview` — unknown, unknown or `null`
+- `replyPreview` — unknown or `null`
 
 ## ConversationMessagesResponse
 

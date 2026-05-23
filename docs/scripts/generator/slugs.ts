@@ -61,7 +61,9 @@ export function pageTitle(pageName: string): string {
 }
 
 export function withWipSuffix(title: string, wip: boolean): string {
-	return wip ? `${title}, WIP` : title;
+	if (!wip) return title;
+	if (/,\s*WIP$/i.test(title)) return title;
+	return `${title}, WIP`;
 }
 
 export function tagFilePath(outDir: string, pageName: string): string {

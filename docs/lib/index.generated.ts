@@ -145,7 +145,7 @@ export const grindrApiReference: DefaultTheme.SidebarItem[] = [
 	{ text: "Ratings", link: "/grindr-api/ratings" },
 	{ text: "Top Picks, WIP", link: "/grindr-api/top-picks" },
 	{ text: "Signal share", link: "/grindr-api/signal-share" },
-	{ text: "Drawer", link: "/grindr-api/drawer" },
+	{ text: "Drawer, WIP", link: "/grindr-api/drawer" },
 	{ text: "Legal agreements, WIP", link: "/grindr-api/legal-agreements" },
 	{ text: "GrindrStore, WIP", link: "/grindr-api/grindrstore" },
 	{ text: "Heatmap, WIP", link: "/grindr-api/heatmap" },

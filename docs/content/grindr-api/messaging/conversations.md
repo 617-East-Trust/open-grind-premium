@@ -254,7 +254,7 @@ String with two long integers separated by `:`, e.g. `"12345678:23456789"`. Long
 
 - `conversationId` — object
   - `value` — [Conversation ID](/grindr-api/messaging/conversations#conversation-id)
-- `messageId` — string
+- `messageId` — see [Message](/grindr-api/messaging/messages#message) for format
 - `chat1MessageId` — string with UUIDv4, second part of `messageId`
 - `senderId` — [Profile ID](/grindr-api/users/profiles#profilemin)
 - `type` — [Message type](/grindr-api/messaging/messages#message-type)
