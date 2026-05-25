@@ -1,6 +1,7 @@
 # Age verification, WIP
 
-> [!NOTE] This page is a work in progress. Endpoints below haven't been fully researched. Help needed.
+> [!NOTE]
+> This page is a work in progress. Endpoints below haven't been fully researched. Help needed.
 
 ## Verify age document, WIP
 

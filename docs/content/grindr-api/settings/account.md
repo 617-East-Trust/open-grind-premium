@@ -2,7 +2,8 @@
 
 ## Validate password complexity, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v3/users/password-validation
@@ -10,7 +11,8 @@ POST /v3/users/password-validation
 
 ## Register FCM push token, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v3/gcm-push-tokens
@@ -18,7 +20,8 @@ POST /v3/gcm-push-tokens
 
 ## Update password, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v3/users/update-password
@@ -26,7 +29,8 @@ POST /v3/users/update-password
 
 ## Update account email, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v3/users/email
@@ -40,7 +44,8 @@ Response:
 
 ## Update password via phone, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v4/sms/users/update-password
@@ -48,7 +53,8 @@ POST /v4/sms/users/update-password
 
 ## Create third party account, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v7/users/thirdparty
@@ -56,7 +62,8 @@ POST /v7/users/thirdparty
 
 ## Forgot password, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v3/users/forgot-password
@@ -64,7 +71,8 @@ POST /v3/users/forgot-password
 
 ## Exchange Google access token, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v3/users/thirdparty/exchange
@@ -72,7 +80,8 @@ POST /v3/users/thirdparty/exchange
 
 ## Create phone session, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v4/sms/sessions

@@ -6,16 +6,15 @@ import { renderSharedPage, renderTagPage } from "./generator/pages";
 import { renderSidebar } from "./generator/sidebar";
 import { tagFilePath } from "./generator/slugs";
 
-const OPENAPI_PATH = "lib/openapi.json";
-const OUT_DIR = process.env.OUT_DIR || "content/grindr-api";
-const SIDEBAR_PATH = process.env.SIDEBAR_PATH || "lib/index.generated.ts";
+const OUT_DIR = "content/grindr-api";
+const SIDEBAR_PATH = "lib/index.ts";
 
 function writeFile(path: string, content: string): void {
 	mkdirSync(dirname(path), { recursive: true });
 	writeFileSync(path, content);
 }
 
-const ctx = loadContext(OPENAPI_PATH);
+const ctx = loadContext("lib/openapi.json");
 const realTagNames = new Set(ctx.doc.tags.map((t) => t.name));
 let written = 0;
 

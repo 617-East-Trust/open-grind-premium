@@ -1,6 +1,7 @@
 # Access requests, WIP
 
-> [!NOTE] This page is a work in progress. Endpoints below haven't been fully researched.
+> [!NOTE]
+> This page is a work in progress. Endpoints below haven't been fully researched.
 
 ## Create access request verification code v2, WIP
 

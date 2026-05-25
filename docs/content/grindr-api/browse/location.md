@@ -38,7 +38,9 @@ Grindr requires geohash to be exactly 12 characters long. <https://en.wikipedia.
 
 Example: `ezjmgyern222` (Madrid, Spain)
 
-> [!WARNING] Setting geohash inside of United Kingdom will lead to the account being locked and resetting geohash being impossible until you submit legal documents for age verification.
+> [!WARNING]
+>
+> Setting geohash inside of United Kingdom will lead to the account being locked and resetting geohash being impossible until you submit legal documents for age verification.
 
 Geohash explorer: <https://geohash.softeng.co/>
 

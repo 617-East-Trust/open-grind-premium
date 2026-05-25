@@ -26,7 +26,8 @@ Errors:
 
 ## OCR recognition in chat, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 
@@ -38,7 +39,8 @@ POST /v5/recognition/chat
 
 ## Rate an AI message suggestion, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 

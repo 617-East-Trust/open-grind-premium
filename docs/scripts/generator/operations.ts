@@ -186,11 +186,11 @@ export function renderOperation(
 	const lines: string[] = [`## ${withWipSuffix(summary, wip)}`, ""];
 
 	if (wip && !tagIsWip) {
-		lines.push("> [!NOTE] This endpoint hasn't been researched yet", "");
+		lines.push("> [!NOTE]\n> This endpoint hasn't been researched yet", "");
 	}
 
 	if (op["x-wip-note"]) {
-		lines.push(`> [!NOTE] ${op["x-wip-note"]}`, "");
+		lines.push(`> [!NOTE]\n> ${op["x-wip-note"]}`, "");
 	}
 
 	if (op.security && op.security.length) {

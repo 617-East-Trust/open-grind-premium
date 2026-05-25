@@ -28,7 +28,8 @@ Only Android release builds are supported as of May 15th, 2026.
 nix run .#build-android
 ```
 
-> [!NOTE] First time you run `nix develop` or `nix run` in Open Grind's repository, Nix will download
+> [!NOTE]
+> First time you run `nix develop` or `nix run` in Open Grind's repository, Nix will download
 > and setup about 3 GB environment, which might take some time, depending on your internet connection speed.
 
 Output: `src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk`.

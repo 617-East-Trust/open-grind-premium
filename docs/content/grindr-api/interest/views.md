@@ -32,7 +32,8 @@ Response:
 
 ## Record profile views (batch), WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 
@@ -47,7 +48,8 @@ Body:
 
 ## Record single profile view, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 
@@ -57,7 +59,8 @@ POST /v4/views/{profileId}
 
 ## Record profile view v2, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 

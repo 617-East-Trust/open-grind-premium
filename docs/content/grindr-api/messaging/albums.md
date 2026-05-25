@@ -211,7 +211,8 @@ Empty
 
 ## Albums content processing, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 GET /v1/albums/{albumId}/content/{contentId}/processing
@@ -223,7 +224,8 @@ Response:
 
 ## Pics, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 GET /v1/pics/limited/status
@@ -236,7 +238,8 @@ Response:
 
 ## Pics expiring, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v4/pics/expiring
@@ -244,7 +247,8 @@ POST /v4/pics/expiring
 
 ## Pics expiring status, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 GET /v4/pics/expiring/status
@@ -252,7 +256,8 @@ GET /v4/pics/expiring/status
 
 ## Videos expiring status, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 GET /v4/videos/expiring/status
@@ -312,7 +317,8 @@ Empty
 
 ## Unshare an album from everybody, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Unknown, returns 403
 
@@ -322,7 +328,8 @@ PUT /v1/albums/{albumId}/shares/remove
 
 ## Albums content chat list-by-id, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 
@@ -367,7 +374,8 @@ Response:
 
 ## Albums red dot, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 This may just be tracking but could also be related to something else
 
@@ -439,7 +447,8 @@ Response:
 
 ## Pressie albums feed profile ID, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 GET /v3/pressie-albums/feed/{profileId}
@@ -447,7 +456,8 @@ GET /v3/pressie-albums/feed/{profileId}
 
 ## Pressie albums feed update read, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v3/pressie-albums/feed/update/read

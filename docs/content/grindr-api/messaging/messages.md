@@ -114,7 +114,8 @@ Errors:
 
 ## Send typing indicator, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 
@@ -461,18 +462,21 @@ Body for `"ExpiringAlbumV2"` message type. For [AlbumExpirationType](/grindr-api
 
 ## NonExpiringVideoBody
 
-> [!NOTE] This type hasn't been researched yet
+> [!NOTE]
+> This type hasn't been researched yet
 
 Body for `"NonExpiringVideo"` message type. Unknown, WIP.
 
 ## GenerativeBody
 
-> [!NOTE] This type hasn't been researched yet
+> [!NOTE]
+> This type hasn't been researched yet
 
 Body for `"Generative"` message type. Unknown, WIP.
 
 ## ProfileLinkBody
 
-> [!NOTE] This type hasn't been researched yet
+> [!NOTE]
+> This type hasn't been researched yet
 
 Body for `"ProfileLink"` message type. Unknown, WIP.

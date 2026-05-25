@@ -2,7 +2,8 @@
 
 ## Acknowledge notifications, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /public/v1/notifications/ack

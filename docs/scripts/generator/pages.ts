@@ -96,7 +96,7 @@ function renderSchemaSection(ctx: Context, name: string): string {
 	const display = schemaDisplay(ctx, name);
 	const lines: string[] = [`## ${display}`, ""];
 
-	if (wip) lines.push("> [!NOTE] This type hasn't been researched yet", "");
+	if (wip) lines.push("> [!NOTE]\n> This type hasn't been researched yet", "");
 	if (schema.description) lines.push(schema.description, "");
 
 	if (schema["x-enum-labels"]) {
@@ -202,16 +202,16 @@ export function renderTagPage(ctx: Context, tagName: string): string {
 
 	if (wip && tagObj?.["x-wip-note"]) {
 		lines.push(
-			`> [!NOTE] This page is a work in progress. Endpoints below haven't been fully researched. ${tagObj["x-wip-note"]}`,
+			`> [!NOTE]\n> This page is a work in progress. Endpoints below haven't been fully researched. ${tagObj["x-wip-note"]}`,
 			"",
 		);
 	} else if (wip) {
 		lines.push(
-			"> [!NOTE] This page is a work in progress. Endpoints below haven't been fully researched.",
-			"",
+			"> [!NOTE]\n> This page is a work in progress. Endpoints below haven't been fully researched.",
+		"",
 		);
 	} else if (tagObj?.["x-wip-note"]) {
-		lines.push(`> [!NOTE] ${tagObj["x-wip-note"]}`, "");
+		lines.push(`> [!NOTE]\n> ${tagObj["x-wip-note"]}`, "");
 	}
 
 	for (const entry of ctx.operationsByTag.get(tagName) ?? []) {

@@ -24,7 +24,8 @@ Binary content.
 
 ## MediaState
 
-> [!NOTE] This type hasn't been researched yet
+> [!NOTE]
+> This type hasn't been researched yet
 
 Public media in Grindr undergo through an automated moderation check before they appear in profile. State can be either `null` for medias uploaded privately ([chats](/grindr-api/messaging/albums#upload-media-to-an-album)) or one of the below for public-facing media.
 

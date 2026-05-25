@@ -1,6 +1,7 @@
 # Top Picks, WIP
 
-> [!NOTE] This page is a work in progress. Endpoints below haven't been fully researched.
+> [!NOTE]
+> This page is a work in progress. Endpoints below haven't been fully researched.
 
 ## Get top picks messaging entitlement, WIP
 

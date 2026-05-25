@@ -18,10 +18,13 @@ export const grindrApiReferenceBrowse: DefaultTheme.SidebarItem[] = [
 	{ text: "Grid", link: "/grindr-api/browse/grid" },
 	{ text: "Social events", link: "/grindr-api/browse/social-events" },
 	{ text: "Entitlements", link: "/grindr-api/browse/entitlements" },
-	{ text: "Links", link: "/grindr-api/browse/links" },
+	{ text: "Links, WIP", link: "/grindr-api/browse/links" },
 	{ text: "Travels", link: "/grindr-api/browse/travels" },
 	{ text: "Roam, WIP", link: "/grindr-api/browse/roam" },
-	{ text: "Age verification", link: "/grindr-api/browse/age-verification" },
+	{
+		text: "Age verification, WIP",
+		link: "/grindr-api/browse/age-verification",
+	},
 	{ text: "Blocks", link: "/grindr-api/browse/blocks" },
 	{ text: "Hides", link: "/grindr-api/browse/hides" },
 	{ text: "Discover, WIP", link: "/grindr-api/browse/discover" },
@@ -45,11 +48,26 @@ export const grindrApiReferenceInterest: DefaultTheme.SidebarItem[] = [
 
 export const grindrApiReferenceSettings: DefaultTheme.SidebarItem[] = [
 	{ text: "Account", link: "/grindr-api/settings/account" },
-	{ text: "SMS verification", link: "/grindr-api/settings/sms-verification" },
+	{
+		text: "SMS verification, WIP",
+		link: "/grindr-api/settings/sms-verification",
+	},
 ];
 
 export const grindrApiReferenceThirdPartyIntegrations: DefaultTheme.SidebarItem[] =
-	[{ text: "Spotify", link: "/grindr-api/third-party-integrations/spotify" }];
+	[
+		{
+			text: "Spotify, WIP",
+			link: "/grindr-api/third-party-integrations/spotify",
+		},
+	];
+
+export const grindrApiReferenceWoodwork: DefaultTheme.SidebarItem[] = [
+	{
+		text: "Random promotion images",
+		link: "/grindr-api/woodwork/random-promotion-images",
+	},
+];
 
 export const grindrApiReferenceWebSocket: DefaultTheme.SidebarItem[] = [
 	{ text: "Events", link: "/grindr-api/websocket/events" },
@@ -60,19 +78,12 @@ export const grindrApiReferenceWebSocket: DefaultTheme.SidebarItem[] = [
 	{ text: "Commands", link: "/grindr-api/websocket/commands" },
 ];
 
-export const grindrApiReferenceWoodwork: DefaultTheme.SidebarItem[] = [
-	{
-		text: "Random promotion images",
-		link: "/grindr-api/woodwork/random-promotion-images",
-	},
-];
-
 export const grindrApiReference: DefaultTheme.SidebarItem[] = [
 	{ text: "Getting started", link: "/grindr-api/getting-started" },
 	{ text: "Security headers", link: "/grindr-api/security-headers" },
 	{ text: "API Authorization", link: "/grindr-api/api-authorization" },
 	{ text: "Authentication", link: "/grindr-api/authentication" },
-	{ text: "Bootstrap", link: "/grindr-api/bootstrap" },
+	{ text: "Bootstrap, WIP", link: "/grindr-api/bootstrap" },
 	{
 		text: "Messaging",
 		link: "/grindr-api/messaging/",
@@ -110,7 +121,7 @@ export const grindrApiReference: DefaultTheme.SidebarItem[] = [
 		collapsed: true,
 		items: grindrApiReferenceInterest,
 	},
-	{ text: "Right Now", link: "/grindr-api/right-now" },
+	{ text: "Right Now, WIP", link: "/grindr-api/right-now" },
 	{
 		text: "Settings",
 		link: "/grindr-api/settings/",
@@ -126,7 +137,7 @@ export const grindrApiReference: DefaultTheme.SidebarItem[] = [
 	{ text: "StoreApiRest, WIP", link: "/grindr-api/storeapirest" },
 	{ text: "Notifications", link: "/grindr-api/notifications" },
 	{
-		text: "Woodwork, WIP",
+		text: "Woodwork",
 		link: "/grindr-api/woodwork/",
 		collapsed: true,
 		items: grindrApiReferenceWoodwork,
@@ -158,4 +169,5 @@ export const grindrApiReference: DefaultTheme.SidebarItem[] = [
 		items: grindrApiReferenceWebSocket,
 	},
 	{ text: "Appendix", link: "/grindr-api/appendix" },
+	{ text: "Shared types", link: "/grindr-api/shared-types" },
 ];

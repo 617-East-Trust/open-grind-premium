@@ -229,7 +229,8 @@ Response:
 
 ## Chat AI summary feedback, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 POST /v1/chat/summary/feedback

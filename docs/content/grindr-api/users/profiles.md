@@ -42,7 +42,8 @@ Response:
 
 ## Update own profile (full), WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 
@@ -58,7 +59,8 @@ Body:
 
 ## Update own profile (partial), WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 
@@ -74,7 +76,8 @@ Body:
 
 ## Profile tags suggestions, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 PUT /v4/profile-tags/suggestions
@@ -82,7 +85,8 @@ PUT /v4/profile-tags/suggestions
 
 ## Profile tags translations, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 GET /v5/profile-tags/translations
@@ -204,7 +208,8 @@ Response:
 
 ## Check if profiles are reachable, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 Requires [Authorization](/grindr-api/api-authorization).
 
@@ -222,7 +227,8 @@ Response:
 
 ## Get profile insights v1, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 GET /v1/profile-insights/{profileId}
@@ -230,7 +236,8 @@ GET /v1/profile-insights/{profileId}
 
 ## Get profile insights v2, WIP
 
-> [!NOTE] This endpoint hasn't been researched yet
+> [!NOTE]
+> This endpoint hasn't been researched yet
 
 ```
 GET /v2/profile-insights/{profileId}
@@ -484,7 +491,8 @@ Social network user reference.
 
 ## ProfileImageState
 
-> [!NOTE] This type hasn't been researched yet
+> [!NOTE]
+> This type hasn't been researched yet
 
 Profile media state.
 
