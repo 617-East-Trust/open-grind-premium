@@ -274,7 +274,7 @@ export function renderProperty(
 	) {
 		const childPad = "  ".repeat(indent + 1);
 		lines.push(
-			`${childPad}- *key is ${(working as Record<string, unknown>)["x-key-description"] ?? "string"}*`,
+			`${childPad}- *key is ${working["x-key-description"] ?? "string"}*`,
 		);
 		const reqList = addlProps.required ?? [];
 		for (const [k, v] of Object.entries(addlProps.properties)) {

@@ -23,6 +23,12 @@
 	"json.schemaDownload.trustedDomains": {
 		"https://schema.tauri.app/config/2": true
 	},
+	"json.schemas": [
+		{
+			"fileMatch": ["**/docs/lib/openapi.json"],
+			"url": "./docs/lib/openapi-3.0.schema.json"
+		}
+	],
 	"[markdown]": {
 		"editor.indentSize": 2,
 		"editor.detectIndentation": false,

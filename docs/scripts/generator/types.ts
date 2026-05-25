@@ -44,6 +44,9 @@ export interface Schema {
 	"x-enum-labels"?: Record<string, string>;
 	"x-wip"?: boolean;
 	"x-property-groups"?: PropertyGroup[];
+	"x-key-description"?: string;
+	"x-exclude-from-markdown"?: string;
+	"x-original-type"?: string;
 	__allOfRefs?: string[];
 }
 
@@ -102,6 +105,7 @@ export interface Operation {
 	"x-see-also"?: string[];
 	"x-errors"?: Record<string, string>;
 	"x-query-groups"?: string[];
+	"x-wip-note"?: string;
 }
 
 export type PathItem = { parameters?: ParameterOrRef[] } & {
@@ -112,6 +116,7 @@ export interface Tag {
 	name: string;
 	description?: string;
 	"x-wip"?: boolean;
+	"x-wip-note"?: string;
 }
 
 export interface SidebarGroup {

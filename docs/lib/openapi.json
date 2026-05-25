@@ -9761,7 +9761,12 @@
 						"description": "Auth token for session refresh"
 					}
 				},
-				"x-render-on-tag": "authentication"
+				"x-render-on-tag": "authentication",
+				"required": [
+					"profileId",
+					"sessionId",
+					"authToken"
+				]
 			},
 			"NotificationsAckRequest": {
 				"type": "object",
@@ -9804,7 +9809,13 @@
 						"description": "e.g. `\"FEATURE_FLAG\"` or `\"EXPERIMENT\"`"
 					}
 				},
-				"x-render-on-tag": "analytics/assignments"
+				"x-render-on-tag": "analytics/assignments",
+				"required": [
+					"key",
+					"value",
+					"payload",
+					"type"
+				]
 			},
 			"DrawerMedia": {
 				"type": "object",
@@ -9840,7 +9851,15 @@
 						"description": "boolean"
 					}
 				},
-				"x-render-on-tag": "drawer"
+				"x-render-on-tag": "drawer",
+				"required": [
+					"id",
+					"url",
+					"contentType",
+					"createdTs",
+					"used",
+					"takenOnGrindr"
+				]
 			},
 			"Place": {
 				"type": "object",
@@ -9868,7 +9887,15 @@
 						"format": "float"
 					}
 				},
-				"x-render-on-tag": "browse/location"
+				"x-render-on-tag": "browse/location",
+				"required": [
+					"name",
+					"address",
+					"lat",
+					"lon",
+					"placeId",
+					"importance"
+				]
 			},
 			"LocationUpdateRequest": {
 				"type": "object",
@@ -9949,7 +9976,21 @@
 						"type": "boolean"
 					}
 				},
-				"x-render-on-tag": "browse/social-events"
+				"x-render-on-tag": "browse/social-events",
+				"required": [
+					"socialEventId",
+					"name",
+					"location",
+					"startTime",
+					"endTime",
+					"eventType",
+					"eventImageUrl",
+					"imageSource",
+					"region",
+					"attendeesPreview",
+					"timezone",
+					"isAttending"
+				]
 			},
 			"TravelPlanMutation": {
 				"type": "object",
@@ -10011,7 +10052,12 @@
 					}
 				},
 				"description": "Minimal masked profile.",
-				"x-render-on-tag": "users/profiles"
+				"x-render-on-tag": "users/profiles",
+				"required": [
+					"distance",
+					"profileImageMediaHash",
+					"isFavorite"
+				]
 			},
 			"ProfileMasked": {
 				"allOf": [
@@ -10052,7 +10098,12 @@
 					}
 				],
 				"description": "Masked profile (extra fields revealed).",
-				"x-render-on-tag": "users/profiles"
+				"x-render-on-tag": "users/profiles",
+				"required": [
+					"lastViewed",
+					"seen",
+					"rightNow"
+				]
 			},
 			"ProfileMin": {
 				"type": "object",
@@ -10076,7 +10127,11 @@
 					}
 				},
 				"description": "Minimal profile fields.",
-				"x-render-on-tag": "users/profiles"
+				"x-render-on-tag": "users/profiles",
+				"required": [
+					"profileId",
+					"displayName"
+				]
 			},
 			"ProfileMedia": {
 				"type": "object",
@@ -10155,7 +10210,17 @@
 					}
 				],
 				"description": "Short profile, combines ProfileMasked and ProfileMin.",
-				"x-render-on-tag": "users/profiles"
+				"x-render-on-tag": "users/profiles",
+				"required": [
+					"age",
+					"showAge",
+					"showDistance",
+					"approximateDistance",
+					"lastChatTimestamp",
+					"isNew",
+					"lastUpdatedTime",
+					"medias"
+				]
 			},
 			"ProfileFields": {
 				"type": "object",
@@ -10218,7 +10283,14 @@
 					}
 				},
 				"description": "Right Now status info on a profile.",
-				"x-render-on-tag": "users/profiles"
+				"x-render-on-tag": "users/profiles",
+				"required": [
+					"rightNowText",
+					"rightNowPosted",
+					"rightNowDistance",
+					"rightNowThumbnailUrl",
+					"rightNowFullImageUrl"
+				]
 			},
 			"ProfileExtraFields": {
 				"type": "object",
@@ -10247,7 +10319,14 @@
 					}
 				},
 				"description": "Extra profile fields.",
-				"x-render-on-tag": "users/profiles"
+				"x-render-on-tag": "users/profiles",
+				"required": [
+					"nsfw",
+					"verifiedInstagramId",
+					"isBlockable",
+					"showTribes",
+					"showPosition"
+				]
 			},
 			"TravelPlanEmbedded": {
 				"type": "object",
@@ -10493,7 +10572,38 @@
 					}
 				],
 				"description": "Full profile object.",
-				"x-render-on-tag": "users/profiles"
+				"x-render-on-tag": "users/profiles",
+				"required": [
+					"aboutMe",
+					"ethnicity",
+					"relationshipStatus",
+					"grindrTribes",
+					"lookingFor",
+					"bodyType",
+					"hivStatus",
+					"lastTestedDate",
+					"height",
+					"weight",
+					"socialNetworks",
+					"identity",
+					"hashtags",
+					"profileTags",
+					"tapped",
+					"tapType",
+					"lastReceivedTapTimestamp",
+					"isTeleporting",
+					"isRoaming",
+					"arrivalDays",
+					"lastThrobTimestamp",
+					"sexualHealth",
+					"isVisiting",
+					"travelPlans",
+					"isInAList",
+					"tribesImInto",
+					"showVipBadge",
+					"rightNowShareLocation",
+					"rightNowMedias"
+				]
 			},
 			"ProfilePatch": {
 				"allOf": [
@@ -10528,7 +10638,11 @@
 				},
 				"description": "Social network user reference.",
 				"x-render-on-tag": "users/profiles",
-				"x-display-name": "SocialNetwork"
+				"x-display-name": "SocialNetwork",
+				"required": [
+					"site",
+					"userId"
+				]
 			},
 			"ProfileTagLanguage": {
 				"type": "object",
@@ -10781,7 +10895,15 @@
 						"type": "boolean"
 					}
 				},
-				"x-render-on-tag": "settings/account"
+				"x-render-on-tag": "settings/account",
+				"required": [
+					"profileId",
+					"locationSearchOptOut",
+					"incognito",
+					"hideViewedMe",
+					"approximateDistance",
+					"viewRightNowNsfw"
+				]
 			},
 			"AccountPreferencesUpdate": {
 				"type": "object",
@@ -10802,7 +10924,14 @@
 						"type": "boolean"
 					}
 				},
-				"x-render-on-tag": "settings/account"
+				"x-render-on-tag": "settings/account",
+				"required": [
+					"locationSearchOptOut",
+					"incognito",
+					"hideViewedMe",
+					"approximateDistance",
+					"viewRightNowNsfw"
+				]
 			},
 			"VisitingSettings": {
 				"type": "object",
@@ -10812,7 +10941,10 @@
 						"description": "`\"AUTO\"`, WIP"
 					}
 				},
-				"x-render-on-tag": "settings/account"
+				"x-render-on-tag": "settings/account",
+				"required": [
+					"setting"
+				]
 			},
 			"HomeLocation": {
 				"type": "object",
@@ -10830,7 +10962,12 @@
 						"format": "float"
 					}
 				},
-				"x-render-on-tag": "settings/account"
+				"x-render-on-tag": "settings/account",
+				"required": [
+					"name",
+					"lat",
+					"lon"
+				]
 			},
 			"HomeLocationMutation": {
 				"type": "object",
@@ -10907,7 +11044,11 @@
 						"description": "might be empty"
 					}
 				},
-				"x-render-on-tag": "users/favorites"
+				"x-render-on-tag": "users/favorites",
+				"required": [
+					"notes",
+					"phoneNumber"
+				]
 			},
 			"FavoriteNoteWithCounterparty": {
 				"allOf": [
@@ -10929,7 +11070,10 @@
 						"description": "profile ID"
 					}
 				},
-				"x-render-on-tag": "users/favorites"
+				"x-render-on-tag": "users/favorites",
+				"required": [
+					"counterpartyId"
+				]
 			},
 			"AlbumExpirationType": {
 				"oneOf": [
@@ -10985,7 +11129,13 @@
 						"type": "boolean"
 					}
 				},
-				"x-render-on-tag": "messaging/albums"
+				"x-render-on-tag": "messaging/albums",
+				"required": [
+					"albumId",
+					"albumNumber",
+					"totalAlbumsShared",
+					"hasUnseenContent"
+				]
 			},
 			"AlbumMin": {
 				"allOf": [
@@ -11013,7 +11163,12 @@
 						"description": "appears to always be `null`"
 					}
 				},
-				"x-render-on-tag": "messaging/albums"
+				"x-render-on-tag": "messaging/albums",
+				"required": [
+					"albumName",
+					"profileId",
+					"albumViewable"
+				]
 			},
 			"AlbumDetails": {
 				"type": "object",
@@ -11032,7 +11187,12 @@
 						"description": "string, date formatted as ISO 8601, e.g. `2026-03-27T20:39:00`"
 					}
 				},
-				"x-render-on-tag": "messaging/albums"
+				"x-render-on-tag": "messaging/albums",
+				"required": [
+					"sharedCount",
+					"createdAt",
+					"updatedAt"
+				]
 			},
 			"AlbumExpiration": {
 				"type": "object",
@@ -11050,7 +11210,11 @@
 						"$ref": "#/components/schemas/AlbumExpirationType"
 					}
 				},
-				"x-render-on-tag": "messaging/albums"
+				"x-render-on-tag": "messaging/albums",
+				"required": [
+					"expiresAt",
+					"expirationType"
+				]
 			},
 			"AlbumContentMin": {
 				"type": "object",
@@ -11069,7 +11233,13 @@
 						"description": "unknown integer, WIP"
 					}
 				},
-				"x-render-on-tag": "messaging/albums"
+				"x-render-on-tag": "messaging/albums",
+				"required": [
+					"contentId",
+					"contentType",
+					"coverUrl",
+					"statusId"
+				]
 			},
 			"AlbumContent": {
 				"allOf": [
@@ -11105,7 +11275,13 @@
 						"description": "unknown or `null`"
 					}
 				},
-				"x-render-on-tag": "messaging/albums"
+				"x-render-on-tag": "messaging/albums",
+				"required": [
+					"thumbUrl",
+					"url",
+					"processing",
+					"rejectionId"
+				]
 			},
 			"MyAlbum": {
 				"allOf": [
@@ -11722,7 +11898,11 @@
 					}
 				},
 				"description": "Conversation object.",
-				"x-render-on-tag": "messaging/conversations"
+				"x-render-on-tag": "messaging/conversations",
+				"required": [
+					"type",
+					"data"
+				]
 			},
 			"InboxFilterRequest": {
 				"type": "object",
@@ -11899,7 +12079,15 @@
 						"description": "number or `null` if album has expired or was locked"
 					}
 				},
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"coverUrl",
+					"ownerProfileId",
+					"isViewable",
+					"hasVideo",
+					"hasPhoto",
+					"viewableUntil"
+				]
 			},
 			"AlbumContentReactionBody": {
 				"type": "object",
@@ -11934,7 +12122,15 @@
 					}
 				},
 				"description": "Body for `\"AlbumContentReaction\"` message type. Implies \"🔥\" reaction as there does not appear to be any choice.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"albumId",
+					"ownerProfileId",
+					"albumContentId",
+					"previewUrl",
+					"expiresAt",
+					"viewable"
+				]
 			},
 			"AlbumContentReplyBody": {
 				"allOf": [
@@ -11960,7 +12156,11 @@
 						"description": "string or `null` if album has expired or was locked"
 					}
 				},
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"albumContentReply",
+					"contentType"
+				]
 			},
 			"AudioMessageBody": {
 				"type": "object",
@@ -12000,7 +12200,15 @@
 					}
 				},
 				"description": "Body for `\"Audio\"` message type.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"mediaId",
+					"mediaHash",
+					"url",
+					"contentType",
+					"length",
+					"expiresAt"
+				]
 			},
 			"VideoMessageBody": {
 				"type": "object",
@@ -12036,7 +12244,16 @@
 					}
 				},
 				"description": "Body for `\"Video\"` message type. Additionally, for expiring videos `viewsRemaining` is set; capped at `2147483647` for \"unlimited\" views.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"mediaId",
+					"url",
+					"fileCacheKey",
+					"contentType",
+					"length",
+					"maxViews",
+					"looping"
+				]
 			},
 			"PrivateVideoBody": {
 				"allOf": [
@@ -12053,7 +12270,10 @@
 					}
 				],
 				"description": "Body for `\"PrivateVideo\"` message type. Extends [Video](#video).",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"viewCount"
+				]
 			},
 			"GaymojiBody": {
 				"type": "object",
@@ -12063,7 +12283,10 @@
 					}
 				},
 				"description": "Body for `\"Gaymoji\"` message type.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"imageHash"
+				]
 			},
 			"GiphyBody": {
 				"type": "object",
@@ -12093,7 +12316,16 @@
 					}
 				},
 				"description": "Body for `\"Giphy\"` message type. URLs point at `https://media0.giphy.com`.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"id",
+					"urlPath",
+					"stillPath",
+					"previewPath",
+					"width",
+					"height",
+					"imageHash"
+				]
 			},
 			"ImageMessageBody": {
 				"type": "object",
@@ -12129,7 +12361,16 @@
 					}
 				},
 				"description": "Body for `\"Image\"` message type. Additional fields are present only for regular (non-expiring) images.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"mediaId",
+					"width",
+					"height",
+					"url",
+					"imageHash",
+					"takenOnGrindr",
+					"createdAt"
+				]
 			},
 			"ChatImageBody": {
 				"type": "object",
@@ -12156,7 +12397,14 @@
 					}
 				},
 				"description": "\"ChatImage\" message body.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"mediaId",
+					"url",
+					"expiresAt",
+					"takenOnGrindr",
+					"createdTs"
+				]
 			},
 			"ExpiringImageBody": {
 				"allOf": [
@@ -12178,7 +12426,11 @@
 					}
 				],
 				"description": "Body for `\"ExpiringImage\"` message type. Extends [Image](#image) but with `url` set to `null` and additional `viewsRemaining`.\n\nTo get a single-use expiring image URL, you need to call [Get a single message in a conversation](/grindr-api/messaging/messages#get-a-single-message-in-a-conversation). After one call, `url` in message body will be replaced with `null` and image will no longer be viewable.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"url",
+					"viewsRemaining"
+				]
 			},
 			"LocationMessageBody": {
 				"type": "object",
@@ -12191,7 +12443,11 @@
 					}
 				},
 				"description": "Body for `\"Location\"` message type.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"lat",
+					"lon"
+				]
 			},
 			"ProfilePhotoReplyBody": {
 				"type": "object",
@@ -12204,7 +12460,11 @@
 					}
 				},
 				"description": "Body for `\"ProfilePhotoReply\"` message type. Unknown, WIP.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"imageHash",
+					"photoContentReply"
+				]
 			},
 			"RetractMessageBody": {
 				"type": "object",
@@ -12214,7 +12474,10 @@
 					}
 				},
 				"description": "Body for `\"Retract\"` message type. Unknown, WIP.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"targetMessageId"
+				]
 			},
 			"TextMessageBody": {
 				"type": "object",
@@ -12224,7 +12487,10 @@
 					}
 				},
 				"description": "Body for `\"Text\"` message type.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"text"
+				]
 			},
 			"VideoCallMessageBody": {
 				"type": "object",
@@ -12240,7 +12506,11 @@
 					}
 				},
 				"description": "Body for `\"VideoCall\"` message type. WIP. Only for \"status\" messages.",
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"result",
+					"videoCallDuration"
+				]
 			},
 			"UnknownMessageBody": {
 				"type": "object",
@@ -12395,7 +12665,21 @@
 						"description": "unknown or `null`"
 					}
 				},
-				"x-render-on-tag": "messaging/messages"
+				"x-render-on-tag": "messaging/messages",
+				"required": [
+					"messageId",
+					"conversationId",
+					"senderId",
+					"timestamp",
+					"unsent",
+					"reactions",
+					"type",
+					"body",
+					"replyToMessage",
+					"dynamic",
+					"chat1Type",
+					"replyPreview"
+				]
 			},
 			"ConversationProfileMini": {
 				"type": "object",
@@ -12856,7 +13140,14 @@
 					"hiddenProfiles": {},
 					"hiddenProfileInfo": {}
 				},
-				"x-render-on-tag": "browse/grid"
+				"x-render-on-tag": "browse/grid",
+				"required": [
+					"items",
+					"nextPage",
+					"shuffled",
+					"hiddenProfiles",
+					"hiddenProfileInfo"
+				]
 			},
 			"FullProfileV1": {
 				"type": "object",
@@ -12961,6 +13252,9 @@
 							}
 						}
 					}
+				],
+				"required": [
+					"upsellItemType"
 				]
 			},
 			"AdvertV1": {
@@ -12983,6 +13277,9 @@
 							}
 						}
 					}
+				],
+				"required": [
+					"cascadePlacementName"
 				]
 			},
 			"TopPicksV1": {
@@ -13034,6 +13331,12 @@
 							}
 						}
 					}
+				],
+				"required": [
+					"uuid",
+					"headerName",
+					"source",
+					"items"
 				]
 			},
 			"BoostUpsellV1": {
@@ -13112,6 +13415,11 @@
 							}
 						}
 					}
+				],
+				"required": [
+					"available",
+					"displayed",
+					"total"
 				]
 			},
 			"SearchProfileResult": {
@@ -13692,6 +14000,15 @@
 							}
 						}
 					}
+				],
+				"required": [
+					"profileId",
+					"onlineUntil",
+					"displayName",
+					"rightNow",
+					"unreadCount",
+					"isVisiting",
+					"isPopular"
 				]
 			},
 			"ExpiringAlbumBody": {

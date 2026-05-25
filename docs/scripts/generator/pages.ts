@@ -148,7 +148,8 @@ function renderSchemaSection(ctx: Context, name: string): string {
 			...(schema.required ?? []),
 		]);
 		for (const [k, v] of Object.entries(merged)) {
-			lines.push(renderProperty(ctx, k, v, 0, reqSet.has(k)));
+			const req = reqSet.has(k);
+			lines.push(appendOptional(renderProperty(ctx, k, v, 0, req), !req));
 		}
 		renderPropertyGroups(ctx, schema["x-property-groups"] ?? [], lines);
 		lines.push("");
@@ -158,7 +159,8 @@ function renderSchemaSection(ctx: Context, name: string): string {
 	if (schema.properties) {
 		const reqList = schema.required ?? [];
 		for (const [k, v] of Object.entries(schema.properties)) {
-			lines.push(renderProperty(ctx, k, v, 0, reqList.includes(k)));
+			const req = reqList.includes(k);
+			lines.push(appendOptional(renderProperty(ctx, k, v, 0, req), !req));
 		}
 		renderPropertyGroups(ctx, schema["x-property-groups"] ?? [], lines);
 		lines.push("");
@@ -190,7 +192,6 @@ export function renderTagPage(ctx: Context, tagName: string): string {
 	const wip = tagObj?.["x-wip"] === true;
 	const lines: string[] = [`# ${withWipSuffix(tagTitle(tagName), wip)}`, ""];
 
-	// Tag description (if any)
 	if (tagObj?.description) {
 		lines.push(tagObj.description, "");
 	}

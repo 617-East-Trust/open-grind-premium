@@ -189,7 +189,6 @@ export function renderOperation(
 		lines.push("> [!NOTE] This endpoint hasn't been researched yet", "");
 	}
 
-	// Custom WIP note (if provided)
 	if (op["x-wip-note"]) {
 		lines.push(`> [!NOTE] ${op["x-wip-note"]}`, "");
 	}

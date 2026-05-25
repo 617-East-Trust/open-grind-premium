@@ -114,7 +114,7 @@ export const videoMessageSchema = messageBaseSchema.safeExtend({
 	body: z.object({
 		mediaId: z.number().int().nonnegative().nullable(),
 		url: z.url().nullable(),
-		fileCacheKey: z.string(),
+		fileCacheKey: z.string().optional(),
 		contentType: z.string().nullable(),
 		length: z.number().int().nonnegative(),
 		maxViews: z.number().int().nonnegative().nullable(),
