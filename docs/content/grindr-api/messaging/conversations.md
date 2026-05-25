@@ -66,6 +66,8 @@ Response:
 
 ## Get conversations by IDs
 
+Note: in this v1 endpoint, each `participants` item only includes `profileId`, `primaryMediaHash`, `lastOnline`, and `distanceMetres`. Fields `onlineUntil`, `position`, `isInAList`, and `hasDatingPotential` are absent.
+
 ```
 POST /v1/inbox/conversation
 ```

@@ -170,7 +170,7 @@ PUT /v3/me/profile/images
 Body:
 
 - `primaryImageHash` — string or `null`
-- `secondaryImageHashes` — array of strings or `null`
+- `secondaryImageHashes` — array of strings, max. length: 5 or `null`
 
 Response:
 
@@ -246,6 +246,8 @@ GET /v2/profile-insights/{profileId}
 ## Get pronouns
 
 Requires [Authorization](/grindr-api/api-authorization).
+
+Gender and pronouns are **managed fields** — profile fields that aren't hardcoded but pulled dynamically from the server.
 
 ```
 GET /v1/pronouns
@@ -344,7 +346,7 @@ Short profile, combines ProfileMasked and ProfileMin.
 - `approximateDistance` — boolean
 - `lastChatTimestamp` — number, may be `0` or `null`
 - `isNew` — boolean
-- `lastUpdatedTime` — unix timestamp in milliseconds
+- `lastUpdatedTime` — unix timestamp in milliseconds, may be `0`
 - `medias` — array of [ProfileMedia](/grindr-api/users/profiles#profilemedia)
 
 ## ProfileFields
@@ -412,9 +414,9 @@ Full profile object.
 - `height` — number in centimeters or `null`
 - `weight` — number in grams or `null`
 - `socialNetworks` — object
-  - `twitter` — [SocialNetwork](/grindr-api/users/profiles#socialnetwork)
-  - `facebook` — [SocialNetwork](/grindr-api/users/profiles#socialnetwork)
-  - `instagram` — [SocialNetwork](/grindr-api/users/profiles#socialnetwork)
+  - `twitter` — [SocialNetwork](/grindr-api/users/profiles#socialnetwork), may be absent
+  - `facebook` — [SocialNetwork](/grindr-api/users/profiles#socialnetwork), may be absent
+  - `instagram` — [SocialNetwork](/grindr-api/users/profiles#socialnetwork), may be absent
 - `identity` — unknown or `null`
 - `hashtags` — array
 - `profileTags` — array of [Profile tags](/grindr-api/users/profiles#profile-tags)
@@ -483,7 +485,7 @@ Social network user reference.
 ## EditProfilePhotosRequest
 
 - `primaryImageHash` — string or `null`
-- `secondaryImageHashes` — array of strings or `null`
+- `secondaryImageHashes` — array of strings, max. length: 5 or `null`
 
 ## DeleteProfilePhotosRequest
 
@@ -503,7 +505,7 @@ Profile media state.
 ## Pronoun
 
 - `pronounId` — integer
-- `pronoun` — string
+- `pronoun` — string, e.g. `"-"` or `"They/Them/Theirs"`
 
 ## Gender
 

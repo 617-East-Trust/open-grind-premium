@@ -19,11 +19,15 @@ Map of string to string.
 
 ## Get spotify favorites, WIP
 
+Response type: `SpotifyBackendResponse` (undocumented).
+
 ```
 GET /v4/spotify/favorites/{profileId}
 ```
 
 ## Post spotify favorites, WIP
+
+Body type: `SpotifyPostRequest` (undocumented).
 
 ```
 POST /v4/spotify/favorites

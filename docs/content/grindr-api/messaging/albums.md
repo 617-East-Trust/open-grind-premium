@@ -66,6 +66,10 @@ Response:
 GET /v3/albums/{albumId}/view
 ```
 
+Response:
+
+Empty.
+
 Errors:
 
 - `403` — Repeated requests after invoking this endpoint on view ONCE albums cause HTTP status 403 Forbidden and `Action not permitted` error.
@@ -115,7 +119,7 @@ Response:
 - `albums` — array of objects
   - *everything from [AlbumMin](/grindr-api/messaging/albums#albummin)*
   - *everything from [AlbumExpiration](/grindr-api/messaging/albums#albumexpiration)*
-  - `content` — [AlbumContentMin](/grindr-api/messaging/albums#albumcontentmin)
+  - `content` — [AlbumContentMin](/grindr-api/messaging/albums#albumcontentmin), a single blurred preview content item
   - `contentCount` — object
     - `imageCount` — integer
     - `videoCount` — integer
@@ -528,7 +532,7 @@ Previously shared [albums in chat](/grindr-api/messaging/messages#albummessagebo
 ## AlbumContentWithRemainingViews
 
 - *everything from [AlbumContent](/grindr-api/messaging/albums#albumcontent)*
-- `remainingViews` — integer, optional
+- `remainingViews` — integer, might be -1; absent if this is your own album, optional
 
 ## AlbumDetailsResponse
 
@@ -547,7 +551,7 @@ Previously shared [albums in chat](/grindr-api/messaging/messages#albummessagebo
 - `albums` — array of objects
   - *everything from [AlbumMin](/grindr-api/messaging/albums#albummin)*
   - *everything from [AlbumExpiration](/grindr-api/messaging/albums#albumexpiration)*
-  - `content` — [AlbumContentMin](/grindr-api/messaging/albums#albumcontentmin)
+  - `content` — [AlbumContentMin](/grindr-api/messaging/albums#albumcontentmin), a single blurred preview content item
   - `contentCount` — object
     - `imageCount` — integer
     - `videoCount` — integer

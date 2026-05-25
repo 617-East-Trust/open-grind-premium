@@ -129,7 +129,7 @@ export const grindrApiReference: DefaultTheme.SidebarItem[] = [
 		items: grindrApiReferenceSettings,
 	},
 	{
-		text: "Third party integrations",
+		text: "Third party integrations, WIP",
 		link: "/grindr-api/third-party-integrations/",
 		collapsed: true,
 		items: grindrApiReferenceThirdPartyIntegrations,

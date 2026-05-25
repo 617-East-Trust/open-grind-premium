@@ -15,7 +15,7 @@ Response:
 - `hides` — array of objects
   - `profileId` — long integer
   - `displayName` — string
-  - `mediaHash` — string, See [Media](/grindr-api/media/)
+  - `mediaHash` — string, appears to be just `"hash"`
 
 ## Unhide all hidden users
 

@@ -5,11 +5,15 @@
 
 ## Create access request verification code v2, WIP
 
+Body type: `DataPortabilityVerificationCode` (undocumented).
+
 ```
 POST /v2/access-requests/codes
 ```
 
 ## Get access requests v2, WIP
+
+Response type: `AccessPortabilityResponse` (undocumented).
 
 ```
 GET /v2/access-requests
@@ -17,17 +21,23 @@ GET /v2/access-requests
 
 ## Create access request v2, WIP
 
+Body type: `DataPortabilityRequest` (undocumented).
+
 ```
 POST /v2/access-requests
 ```
 
 ## Get access requests v1, WIP
 
+Response type: `DataPortabilityResponse` (undocumented).
+
 ```
 GET /v1/access-requests
 ```
 
 ## Create access request v1, WIP
+
+Body type: `DataPortabilityRequest` (undocumented).
 
 ```
 POST /v1/access-requests
@@ -46,6 +56,8 @@ POST /v2/access-requests/confirm
 ```
 
 ## Create access request verification code v1, WIP
+
+Body type: `DataPortabilityVerificationCode` (undocumented).
 
 ```
 POST /v1/access-requests/codes

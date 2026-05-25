@@ -1,5 +1,61 @@
 # Account
 
+## Login via email, WIP
+
+> [!NOTE]
+> This endpoint hasn't been researched yet
+
+> [!NOTE]
+> URL is dynamic and currently unknown.
+
+Body type: `LoginEmailRequest`, response type: `AuthResponse` (undocumented).
+
+```
+POST /v?/sessions/email
+```
+
+## Create account via email, WIP
+
+> [!NOTE]
+> This endpoint hasn't been researched yet
+
+> [!NOTE]
+> URL is dynamic and currently unknown.
+
+Body type: `CreateAccountEmailRequest`, response type: `FirstPartyCreateAccountResponse` (undocumented).
+
+```
+POST /v?/users/registration/email
+```
+
+## Login via third party, WIP
+
+> [!NOTE]
+> This endpoint hasn't been researched yet
+
+> [!NOTE]
+> URL is dynamic and currently unknown.
+
+Body type: `ThirdPartyRequest`, response type: `ThirdPartyAuthResponse` (undocumented).
+
+```
+POST /v?/sessions/thirdparty
+```
+
+## Create third party session, WIP
+
+> [!NOTE]
+> This endpoint hasn't been researched yet
+
+> [!NOTE]
+> URL is dynamic and currently unknown.
+
+Body type: `ThirdPartySessionRequest`, response type: `ThirdPartyAuthResponse` (undocumented).
+
+```
+POST /v?/sessions/thirdparty/session
+```
+
 ## Validate password complexity, WIP
 
 > [!NOTE]

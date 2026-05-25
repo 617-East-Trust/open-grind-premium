@@ -20,6 +20,34 @@
 	],
 	"tags": [
 		{
+			"name": "messaging"
+		},
+		{
+			"name": "users"
+		},
+		{
+			"name": "browse"
+		},
+		{
+			"name": "analytics"
+		},
+		{
+			"name": "media"
+		},
+		{
+			"name": "interest"
+		},
+		{
+			"name": "settings"
+		},
+		{
+			"name": "third-party-integrations",
+			"x-wip": true
+		},
+		{
+			"name": "woodwork"
+		},
+		{
 			"name": "authentication"
 		},
 		{
@@ -512,6 +540,9 @@
 					"access-requests"
 				],
 				"operationId": "createAccessRequestVerificationCodeV2",
+				"x-notes": [
+					"Body type: `DataPortabilityVerificationCode` (undocumented)."
+				],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -548,6 +579,9 @@
 					"access-requests"
 				],
 				"operationId": "getAccessRequestsV2",
+				"x-notes": [
+					"Response type: `AccessPortabilityResponse` (undocumented)."
+				],
 				"responses": {
 					"200": {
 						"content": {
@@ -572,6 +606,9 @@
 					"access-requests"
 				],
 				"operationId": "createAccessRequestV2",
+				"x-notes": [
+					"Body type: `DataPortabilityRequest` (undocumented)."
+				],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -608,6 +645,9 @@
 					"access-requests"
 				],
 				"operationId": "getAccessRequestsV1",
+				"x-notes": [
+					"Response type: `DataPortabilityResponse` (undocumented)."
+				],
 				"responses": {
 					"200": {
 						"content": {
@@ -632,6 +672,9 @@
 					"access-requests"
 				],
 				"operationId": "createAccessRequestV1",
+				"x-notes": [
+					"Body type: `DataPortabilityRequest` (undocumented)."
+				],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -710,6 +753,9 @@
 					"access-requests"
 				],
 				"operationId": "createAccessRequestVerificationCodeV1",
+				"x-notes": [
+					"Body type: `DataPortabilityVerificationCode` (undocumented)."
+				],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -4122,7 +4168,8 @@
 														"type": "string"
 													},
 													"mediaHash": {
-														"$ref": "#/components/schemas/MediaHash"
+														"type": "string",
+														"description": "appears to be just `\"hash\"`"
 													}
 												}
 											}
@@ -5537,7 +5584,7 @@
 				],
 				"responses": {
 					"200": {
-						"description": "OK"
+						"description": "Empty."
 					},
 					"403": {
 						"description": "Repeated requests after invoking this endpoint on view ONCE albums cause HTTP status 403 Forbidden and `Action not permitted` error."
@@ -6489,6 +6536,9 @@
 					"messaging/conversations"
 				],
 				"operationId": "getConversationsById",
+				"x-notes": [
+					"Note: in this v1 endpoint, each `participants` item only includes `profileId`, `primaryMediaHash`, `lastOnline`, and `distanceMetres`. Fields `onlineUntil`, `position`, `isInAList`, and `hasDatingPotential` are absent."
+				],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -7416,14 +7466,179 @@
 				],
 				"responses": {
 					"200": {
-						"description": "OK"
+						"description": "Empty."
 					}
 				},
 				"summary": "Track phrase usage frequency",
-				"description": "Doesn't appear to influence the phrase's sorting position in [Get saved phrases](/grindr-api/messaging/saved-phrases#get-saved-phrases) response. Increments value in [Get saved phrases (legacy)](/grindr-api/messaging/saved-phrases#get-saved-phrases-legacy) endpoint.",
+				"description": "Doesn't appear to influence the phrase's sorting position in [Get saved phrases](/grindr-api/messaging/saved-phrases#get-saved-phrases) response. Increments value in [Get saved phrases (legacy)](/grindr-api/messaging/saved-phrases#get-saved-phrases-legacy) endpoint."
+			}
+		},
+		"/v?/sessions/email": {
+			"post": {
+				"tags": [
+					"settings/account"
+				],
+				"operationId": "loginEmail",
+				"summary": "Login via email",
+				"x-wip": true,
+				"x-wip-note": "URL is dynamic and currently unknown.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"allOf": [
+									{
+										"$ref": "#/components/schemas/UndocumentedObject"
+									}
+								],
+								"x-original-type": "LoginEmailRequest"
+							}
+						}
+					}
+				},
 				"x-notes": [
-					"Response: Empty."
-				]
+					"Body type: `LoginEmailRequest`, response type: `AuthResponse` (undocumented)."
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UndocumentedObject",
+									"x-original-type": "AuthResponse"
+								}
+							}
+						},
+						"description": "OK"
+					}
+				}
+			}
+		},
+		"/v?/users/registration/email": {
+			"post": {
+				"tags": [
+					"settings/account"
+				],
+				"operationId": "createAccountEmail",
+				"summary": "Create account via email",
+				"x-wip": true,
+				"x-wip-note": "URL is dynamic and currently unknown.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"allOf": [
+									{
+										"$ref": "#/components/schemas/UndocumentedObject"
+									}
+								],
+								"x-original-type": "CreateAccountEmailRequest"
+							}
+						}
+					}
+				},
+				"x-notes": [
+					"Body type: `CreateAccountEmailRequest`, response type: `FirstPartyCreateAccountResponse` (undocumented)."
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UndocumentedObject",
+									"x-original-type": "FirstPartyCreateAccountResponse"
+								}
+							}
+						},
+						"description": "OK"
+					}
+				}
+			}
+		},
+		"/v?/sessions/thirdparty": {
+			"post": {
+				"tags": [
+					"settings/account"
+				],
+				"operationId": "loginThirdParty",
+				"summary": "Login via third party",
+				"x-wip": true,
+				"x-wip-note": "URL is dynamic and currently unknown.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"allOf": [
+									{
+										"$ref": "#/components/schemas/UndocumentedObject"
+									}
+								],
+								"x-original-type": "ThirdPartyRequest"
+							}
+						}
+					}
+				},
+				"x-notes": [
+					"Body type: `ThirdPartyRequest`, response type: `ThirdPartyAuthResponse` (undocumented)."
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UndocumentedObject",
+									"x-original-type": "ThirdPartyAuthResponse"
+								}
+							}
+						},
+						"description": "OK"
+					}
+				}
+			}
+		},
+		"/v?/sessions/thirdparty/session": {
+			"post": {
+				"tags": [
+					"settings/account"
+				],
+				"operationId": "loginThirdPartySession",
+				"summary": "Create third party session",
+				"x-wip": true,
+				"x-wip-note": "URL is dynamic and currently unknown.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"allOf": [
+									{
+										"$ref": "#/components/schemas/UndocumentedObject"
+									}
+								],
+								"x-original-type": "ThirdPartySessionRequest"
+							}
+						}
+					}
+				},
+				"x-notes": [
+					"Body type: `ThirdPartySessionRequest`, response type: `ThirdPartyAuthResponse` (undocumented)."
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UndocumentedObject",
+									"x-original-type": "ThirdPartyAuthResponse"
+								}
+							}
+						},
+						"description": "OK"
+					}
+				}
 			}
 		},
 		"/v3/users/password-validation": {
@@ -8162,6 +8377,9 @@
 					"third-party-integrations/spotify"
 				],
 				"operationId": "getSpotifyFavorites",
+				"x-notes": [
+					"Response type: `SpotifyBackendResponse` (undocumented)."
+				],
 				"parameters": [
 					{
 						"$ref": "#/components/parameters/ProfileIdIntegerPath"
@@ -8189,6 +8407,9 @@
 					"third-party-integrations/spotify"
 				],
 				"operationId": "postSpotifyFavorites",
+				"x-notes": [
+					"Body type: `SpotifyPostRequest` (undocumented)."
+				],
 				"requestBody": {
 					"required": false,
 					"content": {
@@ -9084,6 +9305,9 @@
 					"users/profiles"
 				],
 				"operationId": "getPronouns",
+				"x-notes": [
+					"Gender and pronouns are **managed fields** — profile fields that aren't hardcoded but pulled dynamically from the server."
+				],
 				"security": [
 					{
 						"Grindr3Auth": []
@@ -10223,7 +10447,9 @@
 								"type": "boolean"
 							},
 							"lastUpdatedTime": {
-								"$ref": "#/components/schemas/TimestampMs"
+								"type": "integer",
+								"format": "int64",
+								"description": "unix timestamp in milliseconds, may be `0`"
 							},
 							"medias": {
 								"type": "array",
@@ -10516,13 +10742,28 @@
 								"type": "object",
 								"properties": {
 									"twitter": {
-										"$ref": "#/components/schemas/SocialUserId"
+										"allOf": [
+											{
+												"$ref": "#/components/schemas/SocialUserId"
+											}
+										],
+										"description": "may be absent"
 									},
 									"facebook": {
-										"$ref": "#/components/schemas/SocialUserId"
+										"allOf": [
+											{
+												"$ref": "#/components/schemas/SocialUserId"
+											}
+										],
+										"description": "may be absent"
 									},
 									"instagram": {
-										"$ref": "#/components/schemas/SocialUserId"
+										"allOf": [
+											{
+												"$ref": "#/components/schemas/SocialUserId"
+											}
+										],
+										"description": "may be absent"
 									}
 								}
 							},
@@ -10833,7 +11074,7 @@
 							"type": "string"
 						},
 						"nullable": true,
-						"maxItems": 5
+						"description": "max. length: 5"
 					}
 				},
 				"x-render-on-tag": "users/profiles",
@@ -10886,7 +11127,8 @@
 						"type": "integer"
 					},
 					"pronoun": {
-						"type": "string"
+						"type": "string",
+						"description": "e.g. `\"-\"` or `\"They/Them/Theirs\"`"
 					}
 				},
 				"x-render-on-tag": "users/profiles",
@@ -11443,7 +11685,8 @@
 						"type": "object",
 						"properties": {
 							"remainingViews": {
-								"type": "integer"
+								"type": "integer",
+								"description": "might be -1; absent if this is your own album"
 							}
 						}
 					}
@@ -11533,7 +11776,12 @@
 									"type": "object",
 									"properties": {
 										"content": {
-											"$ref": "#/components/schemas/AlbumContentMin"
+											"allOf": [
+												{
+													"$ref": "#/components/schemas/AlbumContentMin"
+												}
+											],
+											"description": "a single blurred preview content item"
 										},
 										"contentCount": {
 											"type": "object",
