@@ -161,8 +161,8 @@ class GridState {
 					heightCmMax: gridSearchFilters?.height[1],
 				}),
 				...(gridSearchFilters?.weightEnabled && {
-					weightGramsMin: gridSearchFilters?.weight[0],
-					weightGramsMax: gridSearchFilters?.weight[1],
+					weightGramsMin: gridSearchFilters?.weight[0] * 1000,
+					weightGramsMax: gridSearchFilters?.weight[1] * 1000,
 				}),
 				...(gridSearchFilters?.relationshipStatusesEnabled && {
 					relationshipStatuses: gridSearchFilters?.relationshipStatuses,
