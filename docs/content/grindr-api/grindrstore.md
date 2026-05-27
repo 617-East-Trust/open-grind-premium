@@ -5,6 +5,8 @@
 
 ## Submit grindr store coupon, WIP
 
+Body type: `CouponRequest` (undocumented).
+
 ```
 POST /v3.1/store/grindrstore/coupons
 ```

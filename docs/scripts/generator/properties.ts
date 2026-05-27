@@ -159,7 +159,7 @@ export function describeType(ctx: Context, schema: Schema | undefined): string {
 
 function nullableSuffix(desc: string, nullable: boolean): string {
 	if (!nullable) return "";
-	if (desc.includes("`null`") || /\bor null\b/i.test(desc)) return "";
+	if (desc.includes("`null`") || /\bnull\b/i.test(desc)) return "";
 	return " or `null`";
 }
 

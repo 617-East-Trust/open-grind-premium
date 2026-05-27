@@ -7,6 +7,8 @@
 
 Body is URL-encoded (grant_type=authorization_code&code=...&redirect_uri=... or grant_type=refresh_token&refresh_token=... or grant_type=client_credentials).
 
+Response type: `SpotifyAuthResponse` (undocumented).
+
 ```
 POST /api/token
 ```
@@ -35,6 +37,8 @@ POST /v4/spotify/favorites
 
 ## Search spotify tracks, WIP
 
+Response type: `SpotifySearchTrackResponse` (undocumented).
+
 ```
 GET /v1/search
 ```
@@ -46,6 +50,8 @@ Query (optional):
 
 ## Get spotify tracks, WIP
 
+Response type: `SpotifyGetTrackResponse` (undocumented).
+
 ```
 GET /v1/tracks
 ```
@@ -55,6 +61,8 @@ Query (optional):
 - `ids` — string, optional
 
 ## Get spotify recently played, WIP
+
+Response type: `SpotifyRecentlyPlayedResponse` (undocumented).
 
 ```
 GET /v1/me/player/recently-played

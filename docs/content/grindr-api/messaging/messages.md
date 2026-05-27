@@ -56,7 +56,6 @@ Body:
 - `type` — [Message type](/grindr-api/messaging/messages#message-type)
 - `target` — [MessageTarget](/grindr-api/messaging/messages#messagetarget)
 - `body` — object with [Message contents](/grindr-api/messaging/messages#message-contents) or `null`
-- `replyToMessageId` — string or `null`
 
 Response:
 
@@ -257,7 +256,7 @@ Body for `"AlbumContentReply"` message type. Extends AlbumContentReaction.
 Body for `"Audio"` message type.
 
 - `mediaId` — number
-- `mediaHash` — string, See [Media](/grindr-api/media/) or `null`
+- `mediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images) or `null`
 - `url` — string, see [Signed CDN files -> Chat media](/grindr-api/media/signed-cdn-files#chat-media)
 - `contentType` — string, e.g. `audio/aac`
 - `length` — number in milliseconds (1/1000th of a second) or `null`
@@ -430,7 +429,10 @@ Empty type.
 - `type` — [Message type](/grindr-api/messaging/messages#message-type)
 - `target` — [MessageTarget](/grindr-api/messaging/messages#messagetarget)
 - `body` — object with [Message contents](/grindr-api/messaging/messages#message-contents) or `null`
-- `replyToMessageId` — string or `null`, optional
+
+Additional body fields for websocket only:
+
+- `replyToMessageId` — string or `null`
 
 ## MessageMutationRequest
 

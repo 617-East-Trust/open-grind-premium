@@ -11,6 +11,8 @@ PUT /v1/warnings
 
 ## Get warnings, WIP
 
+Response type: `BannedWarningList` (undocumented).
+
 ```
 GET /v2/warnings
 ```

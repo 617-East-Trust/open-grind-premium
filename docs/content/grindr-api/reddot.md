@@ -7,6 +7,8 @@
 
 Requires [Authorization](/grindr-api/api-authorization).
 
+Response type: `RedDotListResponse` (undocumented).
+
 ```
 GET /v1/reddot
 ```

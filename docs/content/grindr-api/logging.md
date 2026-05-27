@@ -15,6 +15,8 @@ Binary file.
 
 ## Submit ux event, WIP
 
+Body type: `UxEventRequest` (undocumented).
+
 ```
 POST /v1/uxevent
 ```

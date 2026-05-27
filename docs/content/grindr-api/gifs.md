@@ -5,6 +5,8 @@
 
 ## Get trending gifs, WIP
 
+Response type: `GiphyResponse` (undocumented).
+
 ```
 GET /v1/gifs/trending
 ```
@@ -15,6 +17,8 @@ Query (optional):
 - `rating` — string, optional
 
 ## Search gifs, WIP
+
+Response type: `GiphyResponse` (undocumented).
 
 ```
 GET /v1/gifs/search

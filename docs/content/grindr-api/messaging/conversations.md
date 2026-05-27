@@ -263,15 +263,15 @@ String with two long integers separated by `:`, e.g. `"12345678:23456789"`. Long
 - `type` — [Message type](/grindr-api/messaging/messages#message-type)
 - `chat1Type` — [Chat1MessageType](/grindr-api/messaging/messages#chat1messagetype)
 - `text` — string or `null`
-- `url` — unknown or `null`
-- `lat` — unknown or `null`
-- `lon` — unknown or `null`
-- `albumId` — integer or `null`
-- `albumContentId` — unknown or `null`
-- `albumContentReply` — unknown or `null`
-- `duration` — unknown or `null`
+- `url` — unknown, appears to be null
+- `lat` — unknown, appears to be null
+- `lon` — unknown, appears to be null
+- `albumId` — integer, appears to be null
+- `albumContentId` — unknown, appears to be null
+- `albumContentReply` — unknown, appears to be null
+- `duration` — unknown, appears to be null
 - `imageHash` — string or `null`
-- `photoContentReply` — unknown or `null`
+- `photoContentReply` — unknown, appears to be null
 
 ## ConversationData
 
@@ -320,7 +320,7 @@ Conversation object.
 
 - `profileId` — long integer
 - `name` — string
-- `mediaHash` — string, See [Media](/grindr-api/media/) or `null`
+- `mediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images) or `null`
 - `onlineUntil` — unknown or `null`
 - `distance` — number or `null`
 - `showDistance` — boolean

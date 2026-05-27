@@ -5,6 +5,8 @@
 
 ## Get top picks messaging entitlement, WIP
 
+Response type: `TopPicksEntitlementResponse` (undocumented).
+
 ```
 GET /v1/toppicks/entitlements/messaging/{profileId}
 ```

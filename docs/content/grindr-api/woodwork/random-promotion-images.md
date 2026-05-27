@@ -17,6 +17,6 @@ Query (optional):
 Response:
 
 - `images` — array of objects with length `count`
-  - `url` — string
+  - `url` — URL
   - `id` — string, e.g. `"WoodworkImage1"`
 - `collection` — string, always `foryou`

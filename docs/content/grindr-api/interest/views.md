@@ -13,7 +13,7 @@ Response:
 - `viewedCount` — number or `null`
 - `mostRecent` — object or `null`
   - `profileId` — string with number
-  - `photoHash` — string, See [Media](/grindr-api/media/)
+  - `photoHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images)
   - `timestamp` — unix timestamp in milliseconds
 
 ## Get viewers list
@@ -86,7 +86,7 @@ View source.
 - `viewedCount` — number or `null`
 - `mostRecent` — object or `null`
   - `profileId` — string with number
-  - `photoHash` — string, See [Media](/grindr-api/media/)
+  - `photoHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images)
   - `timestamp` — unix timestamp in milliseconds
 
 ## ViewPreview

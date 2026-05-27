@@ -5,6 +5,8 @@
 
 ## Get discover profiles, WIP
 
+Response type: `DiscoverResponse` (undocumented).
+
 ```
 GET /v3/discover
 ```
@@ -28,6 +30,8 @@ If subscription is not purchased,
   - `profiles` — array, unknown
 
 ## Get discover profiles (legacy), WIP
+
+Response type: `DiscoverResponse` (undocumented).
 
 ```
 GET /v2/discover

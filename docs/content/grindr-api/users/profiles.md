@@ -117,14 +117,14 @@ Binary file.
 Response:
 
 - `mediaId` — long integer
-- `mediaHash` — string, See [Media](/grindr-api/media/)
+- `mediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images)
 - `url` — URL
 
 ## Upload media (legacy)
 
 Requires [Authorization](/grindr-api/api-authorization).
 
-You must ensure thumbCoords's width and height dimensions are equal, i.e. y2-y1 must equal to x2-x1. Submitting non-suqare thumbnail won't trigger any errors and it will be uploaded to CDN, however attempting to use such illegal thumbnail dimensions image in [Edit profile photos](/grindr-api/users/profiles#edit-profile-photos) will result in it being silently dropped/skipped.
+You must ensure thumbCoords's width and height dimensions are equal, i.e. y2-y1 must equal to x2-x1. Submitting non-square thumbnail won't trigger any errors and it will be uploaded to CDN, however attempting to use such illegal thumbnail dimensions image in [Edit profile photos](/grindr-api/users/profiles#edit-profile-photos) will result in it being silently dropped/skipped.
 
 Also there is a legacy `POST /v3/me/profile/images`.
 
@@ -149,7 +149,7 @@ Response:
   - `fullUrl` — string
   - `thumbnail` — boolean or `null`
   - `state` — string
-  - `mediaHash` — string, See [Media](/grindr-api/media/)
+  - `mediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images)
   - `rejectionReason` — string or `null`
 - `mediaId` — integer
 
@@ -186,7 +186,7 @@ This endpoint removes photo from your profile as well as deletes the media from 
 DELETE /v3/me/profile/images
 ```
 
-Body:
+Body (yes, body, not query):
 
 - `media_hashes` — array of strings
 
@@ -303,7 +303,7 @@ Array of 4 floats or `nulls`: Bottom edge ("y2") in pixels, Left edge ("x1") in 
 Minimal masked profile.
 
 - `distance` — number or `null`
-- `profileImageMediaHash` — string, See [Media](/grindr-api/media/) or `null`
+- `profileImageMediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images) or `null`
 - `isFavorite` — boolean
 
 ## ProfileMasked
@@ -327,7 +327,7 @@ Minimal profile fields.
 
 ## ProfileMedia
 
-- `mediaHash` — string, See [Media](/grindr-api/media/)
+- `mediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images)
 - `type` — integer
 - `state` — integer
 - `reason` — string or `null`
@@ -467,7 +467,7 @@ Social network user reference.
 ## ChatMediaUploadResponse
 
 - `mediaId` — long integer
-- `mediaHash` — string, See [Media](/grindr-api/media/)
+- `mediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images)
 - `url` — URL
 
 ## LegacyMediaUploadResponse
@@ -478,7 +478,7 @@ Social network user reference.
   - `fullUrl` — string
   - `thumbnail` — boolean or `null`
   - `state` — string
-  - `mediaHash` — string, See [Media](/grindr-api/media/)
+  - `mediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images)
   - `rejectionReason` — string or `null`
 - `mediaId` — integer
 
@@ -498,7 +498,7 @@ Social network user reference.
 
 Profile media state.
 
-- `mediaHash` — string, See [Media](/grindr-api/media/)
+- `mediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images)
 - `type` — integer
 - `state` — integer
 

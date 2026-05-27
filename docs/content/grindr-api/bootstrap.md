@@ -5,6 +5,8 @@
 
 ## Get bootstrap, WIP
 
+Response type: `BootstrapResponse` (undocumented).
+
 ```
 GET /v3/bootstrap
 ```

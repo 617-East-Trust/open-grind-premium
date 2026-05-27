@@ -11,6 +11,8 @@ PUT /v1/vip/passed/{passedProfileId}
 
 ## Get vip profiles, WIP
 
+Response type: `StarProfilesResponse` (undocumented).
+
 ```
 GET /v1/vip-profiles
 ```

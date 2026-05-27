@@ -5,6 +5,8 @@
 
 ## Get rewarded chats, WIP
 
+Response type: `ExploreFreeChatsResponse` (undocumented).
+
 ```
 GET /{version}/rewarded-chats
 ```

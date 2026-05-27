@@ -8,7 +8,9 @@
 > [!NOTE]
 > URL is dynamic and currently unknown.
 
-Body type: `LoginEmailRequest`, response type: `AuthResponse` (undocumented).
+Body type: `LoginEmailRequest` (undocumented).
+
+Response type: `AuthResponse` (undocumented).
 
 ```
 POST /v?/sessions/email
@@ -22,7 +24,9 @@ POST /v?/sessions/email
 > [!NOTE]
 > URL is dynamic and currently unknown.
 
-Body type: `CreateAccountEmailRequest`, response type: `FirstPartyCreateAccountResponse` (undocumented).
+Body type: `CreateAccountEmailRequest` (undocumented).
+
+Response type: `FirstPartyCreateAccountResponse` (undocumented).
 
 ```
 POST /v?/users/registration/email
@@ -36,7 +40,9 @@ POST /v?/users/registration/email
 > [!NOTE]
 > URL is dynamic and currently unknown.
 
-Body type: `ThirdPartyRequest`, response type: `ThirdPartyAuthResponse` (undocumented).
+Body type: `ThirdPartyRequest` (undocumented).
+
+Response type: `ThirdPartyAuthResponse` (undocumented).
 
 ```
 POST /v?/sessions/thirdparty
@@ -50,7 +56,9 @@ POST /v?/sessions/thirdparty
 > [!NOTE]
 > URL is dynamic and currently unknown.
 
-Body type: `ThirdPartySessionRequest`, response type: `ThirdPartyAuthResponse` (undocumented).
+Body type: `ThirdPartySessionRequest` (undocumented).
+
+Response type: `ThirdPartyAuthResponse` (undocumented).
 
 ```
 POST /v?/sessions/thirdparty/session
@@ -61,6 +69,8 @@ POST /v?/sessions/thirdparty/session
 > [!NOTE]
 > This endpoint hasn't been researched yet
 
+Body type: `ValidatePasswordComplexityRequest` (undocumented).
+
 ```
 POST /v3/users/password-validation
 ```
@@ -69,6 +79,8 @@ POST /v3/users/password-validation
 
 > [!NOTE]
 > This endpoint hasn't been researched yet
+
+Body type: `FcmPushRequest` (undocumented).
 
 ```
 POST /v3/gcm-push-tokens
@@ -79,6 +91,10 @@ POST /v3/gcm-push-tokens
 > [!NOTE]
 > This endpoint hasn't been researched yet
 
+Body type: `ChangePasswordRequest` (undocumented).
+
+Response type: `ChangePasswordResponse` (undocumented).
+
 ```
 POST /v3/users/update-password
 ```
@@ -87,6 +103,8 @@ POST /v3/users/update-password
 
 > [!NOTE]
 > This endpoint hasn't been researched yet
+
+Body type: `UpdateEmailRequest` (undocumented).
 
 ```
 POST /v3/users/email
@@ -103,6 +121,10 @@ Response:
 > [!NOTE]
 > This endpoint hasn't been researched yet
 
+Body type: `ChangePasswordPhoneRequest` (undocumented).
+
+Response type: `ChangePasswordResponse` (undocumented).
+
 ```
 POST /v4/sms/users/update-password
 ```
@@ -111,6 +133,10 @@ POST /v4/sms/users/update-password
 
 > [!NOTE]
 > This endpoint hasn't been researched yet
+
+Body type: `CreateThirdPartyAccountRequest` (undocumented).
+
+Response type: `ThirdPartyCreateAccountResponse` (undocumented).
 
 ```
 POST /v7/users/thirdparty
@@ -121,6 +147,10 @@ POST /v7/users/thirdparty
 > [!NOTE]
 > This endpoint hasn't been researched yet
 
+Body type: `ForgotPwdEmailRequest` (undocumented).
+
+Response type: `ForgotPwdEmailResponse` (undocumented).
+
 ```
 POST /v3/users/forgot-password
 ```
@@ -130,6 +160,10 @@ POST /v3/users/forgot-password
 > [!NOTE]
 > This endpoint hasn't been researched yet
 
+Body type: `GoogleAccessTokenRequest` (undocumented).
+
+Response type: `GoogleAccessTokenResponse` (undocumented).
+
 ```
 POST /v3/users/thirdparty/exchange
 ```
@@ -138,6 +172,8 @@ POST /v3/users/thirdparty/exchange
 
 > [!NOTE]
 > This endpoint hasn't been researched yet
+
+Body type: `LoginPhoneRequest` (undocumented).
 
 ```
 POST /v4/sms/sessions

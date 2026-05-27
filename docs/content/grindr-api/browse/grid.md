@@ -1,6 +1,6 @@
 # Grid
 
-[Cascade](#get-cascade) returns stuff like advertisements, upsells and partial profiles, presumably ranking by algorithms or paid subscriptions. [Search](#search) returns full profiles, seemengly ranked simply by distance.
+[Cascade](#get-cascade) returns stuff like advertisements, upsells and partial profiles, presumably ranking by algorithms or paid subscriptions. [Search](#search) returns full profiles, seemingly ranked simply by distance.
 
 ## Get Cascade
 
@@ -190,7 +190,7 @@ Only for [v3/cascade](/grindr-api/browse/grid#get-cascade-legacy):
 - `uuid` — string, UUIDv4
 - `headerName` — string, e.g. `"🌎 Explore"`
 - `source` — string, e.g. `"cascade"`
-- `items` — array of objects. `@type` determines contents: *`"ExploreAggregationItem$Location"`*: `data.onlineCount` (integer), `data.uuid` (UUIDv3 string), `data.location` (`id` integer, `name` string, `suffix` string, `lat` float, `lon` float), `data.profiles` (array of objects with `profileImageUrl` URL string). *`"ExploreAggregationItem$Cta"`*: empty.
+- `items` — array of objects. `@type` determines contents: *`"ExploreAggregationItem$Location"`*: `data.onlineCount` (integer), `data.uuid` (UUIDv3 string), `data.location` (`id` integer, `name` string e.g. `"Minneapolis"`, `suffix` string e.g. `"🇺🇸"`, `lat` float, `lon` float), `data.profiles` (array of objects with `profileImageUrl` URL string). *`"ExploreAggregationItem$Cta"`*: empty.
 
 Only for [v3/cascade](/grindr-api/browse/grid#get-cascade-legacy):
 
@@ -243,7 +243,7 @@ Only for [v3/cascade](/grindr-api/browse/grid#get-cascade-legacy):
 - `lastUpdatedTime` — unix timestamp in milliseconds
 - `medias` — array of [ProfileMedia](/grindr-api/users/profiles#profilemedia) or `null`
 - `profileId` — integer
-- `profileImageMediaHash` — string, See [Media](/grindr-api/media/) or `null`
+- `profileImageMediaHash` — string, See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images) or `null`
 - `profileTags` — array of [Profile tags](/grindr-api/users/profiles#profile-tags)
 - `seen` — unix timestamp in milliseconds
 - `showAge` — boolean

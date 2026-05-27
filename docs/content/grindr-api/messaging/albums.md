@@ -419,7 +419,6 @@ Response:
   - `albumViewable` — boolean
   - `albumVersion` — integer
   - `expiresat` — unix timestamp in milliseconds; note: observed key spelling, may also appear as `expiresAt` or `null`
-  - `expiresAt` — unix timestamp in milliseconds or `null`
   - `name` — string or `null`
   - `ownerProfileId` — integer
   - `imageCount` — integer
@@ -522,12 +521,12 @@ Previously shared [albums in chat](/grindr-api/messaging/messages#albummessagebo
 ## MyAlbum
 
 - *everything from [AlbumDetails](/grindr-api/messaging/albums#albumdetails)*
-- `albumId` — long integer, optional
+- `albumId` — long integer
 - `albumName` — see [Album name](/grindr-api/messaging/albums#album-name) or `null`
-- `profileId` — integer, optional
-- `version` — integer, optional
-- `content` — [AlbumContent](/grindr-api/messaging/albums#albumcontent), optional
-- `isShareable` — boolean, optional
+- `profileId` — integer
+- `version` — integer
+- `content` — [AlbumContent](/grindr-api/messaging/albums#albumcontent)
+- `isShareable` — boolean
 
 ## AlbumContentWithRemainingViews
 
@@ -617,7 +616,6 @@ Maximum length: 255 UTF-8 bytes, which is 255 characters for ASCII strings (1 AS
   - `albumViewable` — boolean
   - `albumVersion` — integer
   - `expiresat` — unix timestamp in milliseconds; note: observed key spelling, may also appear as `expiresAt` or `null`
-  - `expiresAt` — unix timestamp in milliseconds or `null`
   - `name` — string or `null`
   - `ownerProfileId` — integer
   - `imageCount` — integer

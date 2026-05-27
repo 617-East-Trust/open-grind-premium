@@ -166,7 +166,7 @@
 		},
 		{
 			"name": "browse/grid",
-			"description": "[Cascade](#get-cascade) returns stuff like advertisements, upsells and partial profiles, presumably ranking by algorithms or paid subscriptions. [Search](#search) returns full profiles, seemengly ranked simply by distance."
+			"description": "[Cascade](#get-cascade) returns stuff like advertisements, upsells and partial profiles, presumably ranking by algorithms or paid subscriptions. [Search](#search) returns full profiles, seemingly ranked simply by distance."
 		},
 		{
 			"name": "browse/hides",
@@ -304,10 +304,10 @@
 								"schema": {
 									"allOf": [
 										{
-											"$ref": "#/components/schemas/UndocumentedObject",
-											"x-original-type": "BootstrapResponse"
+											"$ref": "#/components/schemas/UndocumentedObject"
 										}
-									]
+									],
+									"x-original-type": "BootstrapResponse"
 								}
 							}
 						},
@@ -540,9 +540,6 @@
 					"access-requests"
 				],
 				"operationId": "createAccessRequestVerificationCodeV2",
-				"x-notes": [
-					"Body type: `DataPortabilityVerificationCode` (undocumented)."
-				],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -579,9 +576,6 @@
 					"access-requests"
 				],
 				"operationId": "getAccessRequestsV2",
-				"x-notes": [
-					"Response type: `AccessPortabilityResponse` (undocumented)."
-				],
 				"responses": {
 					"200": {
 						"content": {
@@ -606,9 +600,6 @@
 					"access-requests"
 				],
 				"operationId": "createAccessRequestV2",
-				"x-notes": [
-					"Body type: `DataPortabilityRequest` (undocumented)."
-				],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -645,9 +636,6 @@
 					"access-requests"
 				],
 				"operationId": "getAccessRequestsV1",
-				"x-notes": [
-					"Response type: `DataPortabilityResponse` (undocumented)."
-				],
 				"responses": {
 					"200": {
 						"content": {
@@ -672,9 +660,6 @@
 					"access-requests"
 				],
 				"operationId": "createAccessRequestV1",
-				"x-notes": [
-					"Body type: `DataPortabilityRequest` (undocumented)."
-				],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -753,9 +738,6 @@
 					"access-requests"
 				],
 				"operationId": "createAccessRequestVerificationCodeV1",
-				"x-notes": [
-					"Body type: `DataPortabilityVerificationCode` (undocumented)."
-				],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -7497,9 +7479,6 @@
 						}
 					}
 				},
-				"x-notes": [
-					"Body type: `LoginEmailRequest`, response type: `AuthResponse` (undocumented)."
-				],
 				"responses": {
 					"200": {
 						"content": {
@@ -7539,9 +7518,6 @@
 						}
 					}
 				},
-				"x-notes": [
-					"Body type: `CreateAccountEmailRequest`, response type: `FirstPartyCreateAccountResponse` (undocumented)."
-				],
 				"responses": {
 					"200": {
 						"content": {
@@ -7581,9 +7557,6 @@
 						}
 					}
 				},
-				"x-notes": [
-					"Body type: `ThirdPartyRequest`, response type: `ThirdPartyAuthResponse` (undocumented)."
-				],
 				"responses": {
 					"200": {
 						"content": {
@@ -7623,9 +7596,6 @@
 						}
 					}
 				},
-				"x-notes": [
-					"Body type: `ThirdPartySessionRequest`, response type: `ThirdPartyAuthResponse` (undocumented)."
-				],
 				"responses": {
 					"200": {
 						"content": {
@@ -8377,9 +8347,6 @@
 					"third-party-integrations/spotify"
 				],
 				"operationId": "getSpotifyFavorites",
-				"x-notes": [
-					"Response type: `SpotifyBackendResponse` (undocumented)."
-				],
 				"parameters": [
 					{
 						"$ref": "#/components/parameters/ProfileIdIntegerPath"
@@ -8407,9 +8374,6 @@
 					"third-party-integrations/spotify"
 				],
 				"operationId": "postSpotifyFavorites",
-				"x-notes": [
-					"Body type: `SpotifyPostRequest` (undocumented)."
-				],
 				"requestBody": {
 					"required": false,
 					"content": {
@@ -9092,7 +9056,7 @@
 					}
 				},
 				"summary": "Upload media (legacy)",
-				"description": "You must ensure thumbCoords's width and height dimensions are equal, i.e. y2-y1 must equal to x2-x1. Submitting non-suqare thumbnail won't trigger any errors and it will be uploaded to CDN, however attempting to use such illegal thumbnail dimensions image in [Edit profile photos](/grindr-api/users/profiles#edit-profile-photos) will result in it being silently dropped/skipped.\n\nAlso there is a legacy `POST /v3/me/profile/images`.",
+				"description": "You must ensure thumbCoords's width and height dimensions are equal, i.e. y2-y1 must equal to x2-x1. Submitting non-square thumbnail won't trigger any errors and it will be uploaded to CDN, however attempting to use such illegal thumbnail dimensions image in [Edit profile photos](/grindr-api/users/profiles#edit-profile-photos) will result in it being silently dropped/skipped.\n\nAlso there is a legacy `POST /v3/me/profile/images`.",
 				"x-legacy": true
 			}
 		},
@@ -9151,7 +9115,8 @@
 					}
 				},
 				"summary": "Delete profile photos",
-				"description": "This endpoint removes photo from your profile as well as deletes the media from CDN."
+				"description": "This endpoint removes photo from your profile as well as deletes the media from CDN.",
+				"x-body-label": "Body (yes, body, not query):"
 			}
 		},
 		"/v3.1/me/profile/images": {
@@ -11663,7 +11628,14 @@
 							"isShareable": {
 								"type": "boolean"
 							}
-						}
+						},
+						"required": [
+							"albumId",
+							"profileId",
+							"version",
+							"content",
+							"isShareable"
+						]
 					}
 				],
 				"x-render-on-tag": "messaging/albums",
@@ -12027,14 +11999,6 @@
 											"nullable": true,
 											"description": "unix timestamp in milliseconds; note: observed key spelling, may also appear as `expiresAt`"
 										},
-										"expiresAt": {
-											"allOf": [
-												{
-													"$ref": "#/components/schemas/TimestampMs"
-												}
-											],
-											"nullable": true
-										},
 										"name": {
 											"type": "string",
 											"nullable": true
@@ -12232,33 +12196,41 @@
 						"nullable": true
 					},
 					"url": {
-						"nullable": true
+						"nullable": true,
+						"description": "appears to be null"
 					},
 					"lat": {
-						"nullable": true
+						"nullable": true,
+						"description": "appears to be null"
 					},
 					"lon": {
-						"nullable": true
+						"nullable": true,
+						"description": "appears to be null"
 					},
 					"albumId": {
 						"type": "integer",
-						"nullable": true
+						"nullable": true,
+						"description": "appears to be null"
 					},
 					"albumContentId": {
-						"nullable": true
+						"nullable": true,
+						"description": "appears to be null"
 					},
 					"albumContentReply": {
-						"nullable": true
+						"nullable": true,
+						"description": "appears to be null"
 					},
 					"duration": {
-						"nullable": true
+						"nullable": true,
+						"description": "appears to be null"
 					},
 					"imageHash": {
 						"type": "string",
 						"nullable": true
 					},
 					"photoContentReply": {
-						"nullable": true
+						"nullable": true,
+						"description": "appears to be null"
 					}
 				},
 				"x-render-on-tag": "messaging/conversations",
@@ -13303,10 +13275,6 @@
 								"$ref": "#/components/schemas/MessageBody"
 							}
 						]
-					},
-					"replyToMessageId": {
-						"type": "string",
-						"nullable": true
 					}
 				},
 				"x-render-on-tag": "messaging/messages",
@@ -13314,6 +13282,17 @@
 					"type",
 					"target",
 					"body"
+				],
+				"x-property-groups": [
+					{
+						"heading": "Additional body fields for websocket only:",
+						"properties": {
+							"replyToMessageId": {
+								"type": "string",
+								"nullable": true
+							}
+						}
+					}
 				]
 			},
 			"MessageMutationRequest": {
@@ -13941,7 +13920,7 @@
 					},
 					"items": {
 						"type": "array",
-						"description": "array of objects. `@type` determines contents: *`\"ExploreAggregationItem$Location\"`*: `data.onlineCount` (integer), `data.uuid` (UUIDv3 string), `data.location` (`id` integer, `name` string, `suffix` string, `lat` float, `lon` float), `data.profiles` (array of objects with `profileImageUrl` URL string). *`\"ExploreAggregationItem$Cta\"`*: empty."
+						"description": "array of objects. `@type` determines contents: *`\"ExploreAggregationItem$Location\"`*: `data.onlineCount` (integer), `data.uuid` (UUIDv3 string), `data.location` (`id` integer, `name` string e.g. `\"Minneapolis\"`, `suffix` string e.g. `\"🇺🇸\"`, `lat` float, `lon` float), `data.profiles` (array of objects with `profileImageUrl` URL string). *`\"ExploreAggregationItem$Cta\"`*: empty."
 					}
 				},
 				"x-render-on-tag": "browse/grid",
@@ -14336,7 +14315,8 @@
 							"type": "object",
 							"properties": {
 								"url": {
-									"type": "string"
+									"type": "string",
+									"format": "uri"
 								},
 								"id": {
 									"type": "string",
@@ -14762,7 +14742,7 @@
 			},
 			"MediaHash": {
 				"type": "string",
-				"description": "See [Media](/grindr-api/media/)"
+				"description": "See [Media -> Public CDN files -> Profile Images](/grindr-api/media/public-cdn-files#profile-images)"
 			}
 		}
 	},

@@ -107,6 +107,7 @@ export interface Operation {
 	"x-errors"?: Record<string, string>;
 	"x-query-groups"?: string[];
 	"x-wip-note"?: string;
+	"x-body-label"?: string;
 }
 
 export type PathItem = { parameters?: ParameterOrRef[] } & {

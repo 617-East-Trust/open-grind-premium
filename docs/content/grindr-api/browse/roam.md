@@ -11,11 +11,15 @@ GET /v1/location/neighborhood/{geohash}
 
 ## Update roam location, WIP
 
+Body type: `RoamPutLocationRequest` (undocumented).
+
 ```
 PUT /v1/roam/location
 ```
 
 ## Get roam session, WIP
+
+Response type: `RoamSession` (undocumented).
 
 ```
 GET /v1/roam

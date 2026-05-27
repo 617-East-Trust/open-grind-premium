@@ -78,6 +78,8 @@ POST /v4/recognition/face
 
 Body is URL-encoded (grant_type=authorization_code&code=...&redirect_uri=... or grant_type=refresh_token&refresh_token=... or grant_type=client_credentials).
 
+Response type: `SpotifyAuthResponse` (undocumented).
+
 ```
 POST /api/token
 ```

@@ -49,6 +49,21 @@ function refName(ref: string): string {
 	return ref.replace("#/components/schemas/", "");
 }
 
+function placeholderOriginalType(schema: Schema): string | undefined {
+	const ref = schema.$ref ? refName(schema.$ref) : undefined;
+	return (
+		schema["x-original-type"] ??
+		schema.allOf?.[0]?.["x-original-type"] ??
+		(ref && ref !== "UndocumentedObject" ? ref : undefined)
+	);
+}
+
+function withDeprecatedSuffix(title: string): string {
+	if (/,\s*WIP$/i.test(title))
+		return title.replace(/,\s*WIP$/i, " (deprecated), WIP");
+	return `${title} (deprecated)`;
+}
+
 function appendOptional(propertyLine: string, optional: boolean): string {
 	if (!optional) return propertyLine;
 	const nl = propertyLine.indexOf("\n");
@@ -183,7 +198,10 @@ export function renderOperation(
 	const { path, method, op } = entry;
 	const summary = op.summary ?? humanizeOperationId(op.operationId);
 	const wip = op["x-wip"] === true;
-	const lines: string[] = [`## ${withWipSuffix(summary, wip)}`, ""];
+	const deprecated = op.deprecated === true;
+	let headingTitle = withWipSuffix(summary, wip);
+	if (deprecated) headingTitle = withDeprecatedSuffix(headingTitle);
+	const lines: string[] = [`## ${headingTitle}`, ""];
 
 	if (wip && !tagIsWip) {
 		lines.push("> [!NOTE]\n> This endpoint hasn't been researched yet", "");
@@ -207,6 +225,35 @@ export function renderOperation(
 		for (const link of op["x-see-also"])
 			lines.push(`See also: [${seeAlsoText(link)}](${link})`);
 		lines.push("");
+	}
+
+	const resolveForPlaceholder = (name: string): Schema | undefined =>
+		ctx.doc.components.schemas[name];
+	if (op.requestBody?.content) {
+		const bodyJson = op.requestBody.content["application/json"];
+		if (
+			bodyJson?.schema &&
+			isPlaceholderSchema(bodyJson.schema, resolveForPlaceholder)
+		) {
+			const original = placeholderOriginalType(bodyJson.schema);
+			if (original)
+				lines.push(`Body type: \`${original}\` (undocumented).`, "");
+		}
+	}
+	const wipSuccessCode = ["200", "201", "202", "204"].find(
+		(c) => op.responses?.[c],
+	);
+	if (wipSuccessCode && op.responses) {
+		const wipResp = op.responses[wipSuccessCode];
+		const wipJson = wipResp?.content?.["application/json"];
+		if (
+			wipJson?.schema &&
+			isPlaceholderSchema(wipJson.schema, resolveForPlaceholder)
+		) {
+			const original = placeholderOriginalType(wipJson.schema);
+			if (original)
+				lines.push(`Response type: \`${original}\` (undocumented).`, "");
+		}
 	}
 
 	lines.push("```", `${method.toUpperCase()} ${path}`, "```", "");
@@ -270,7 +317,9 @@ export function renderOperation(
 		const multipart = c["multipart/form-data"];
 		const formUrl = c["application/x-www-form-urlencoded"];
 		const optional = op.requestBody.required === false;
-		lines.push(optional ? "Body (optional):" : "Body:", "");
+		const bodyLabel =
+			op["x-body-label"] ?? (optional ? "Body (optional):" : "Body:");
+		lines.push(bodyLabel, "");
 		if (json) lines.push(...renderBodySchema(ctx, json.schema));
 		else if (binary) lines.push("Binary file.");
 		else if (multipart) {
