@@ -148,7 +148,7 @@ async fn main() -> ExitCode {
 
             println!();
             if mismatches.is_empty() {
-                println!("Pass\n", phase.label);
+                println!("PASS ({} — {})\n", mode.label, phase.label);
             } else {
                 eprintln!(
                     "FAIL ({} — {}) — {} mismatch(es):",
