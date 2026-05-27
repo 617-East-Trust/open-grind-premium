@@ -41,15 +41,10 @@
 	let searchQuery = $state("");
 	let showSearchResults = $state(false);
 	let searchPlaces = $derived.by(async () => {
-		try {
-			let query = searchQuery.trim();
-			if (!query) return;
-			const response = await getPlaces({ query });
-			return response;
-		} catch (error) {
-			console.error(error);
-			toast.error("Failed to search places");
-		}
+		let query = searchQuery.trim();
+		if (!query) return;
+		const response = await getPlaces({ query });
+		return response;
 	});
 
 	let pendingCenter: { lat: number; lon: number } | undefined = $state();
@@ -67,6 +62,8 @@
 			pendingCenter = undefined;
 		}
 	});
+
+	const gpsAvailable = $derived(["android", "ios"].includes(platform()));
 </script>
 
 <div class="w-[inherit] h-[inherit] relative">
@@ -105,7 +102,14 @@
 			/>
 		{/if}
 	</Map>
-	<div class="absolute bottom-4 w-full max-w-[calc(100%-2.5rem)] z-1010 p-2">
+	<div
+		class={[
+			"absolute bottom-4 w-full z-1010 p-2",
+			{
+				"max-w-[calc(100%-2.5rem)]": gpsAvailable,
+			},
+		]}
+	>
 		<Input
 			id="search-place"
 			type="search"
@@ -114,7 +118,7 @@
 				() => searchQuery,
 				(v: string) => {
 					searchQuery = v;
-					showSearchResults = true;
+					showSearchResults = v.length > 0;
 				}
 			}
 			class="bg-popover-foreground text-background shadow-md"
@@ -123,6 +127,11 @@
 				if (searchQuery.trim()) {
 					showSearchResults = true;
 				}
+			}}
+			onblur={() => {
+				setTimeout(() => {
+					showSearchResults = false;
+				}, 200);
 			}}
 		/>
 		<!-- bottom-2 w-[calc(100%-8rem)]  -->
@@ -158,12 +167,12 @@
 						{/each}
 					{/if}
 				{:catch error}
-					<ApiErrorDisplay {error} />
+					<ApiErrorDisplay {error} buttonVariant="secondary" class="m-auto" />
 				{/await}
 			</div>
 		</div>
 	{/if}
-	{#if ["android", "ios"].includes(platform())}
+	{#if gpsAvailable}
 		<div class="absolute bottom-6 right-2 z-1010 rounded-full">
 			<Button
 				size="icon-lg"

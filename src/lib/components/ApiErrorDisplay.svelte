@@ -12,8 +12,12 @@
 	let {
 		error,
 		class: className,
-	}: { error: unknown; class?: import("svelte/elements").ClassValue } =
-		$props();
+		buttonVariant = "outline",
+	}: {
+		error: unknown;
+		class?: import("svelte/elements").ClassValue;
+		buttonVariant?: import("$lib/components/ui/button").ButtonVariant;
+	} = $props();
 
 	function getCopyText(): string {
 		if (error instanceof ApiError) {
@@ -42,8 +46,8 @@
 							"Error details may contain your personal and sensitive data. Redact before sharing them with others.",
 						duration: 7000,
 					});
+					void setPreferences({ warnBeforeCopyingErrorDetails: false });
 				}
-				void setPreferences({ warnBeforeCopyingErrorDetails: false });
 			})
 			.catch((e) => console.error(e));
 	}
@@ -51,5 +55,5 @@
 
 <div class={["flex flex-col items-center gap-2 p-4", className]}>
 	<p class="text-muted-foreground text-sm">Something went wrong</p>
-	<Button variant="outline" size="sm" onclick={copy}>Copy details</Button>
+	<Button variant={buttonVariant} size="sm" onclick={copy}>Copy details</Button>
 </div>
