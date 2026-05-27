@@ -25,7 +25,12 @@ mod file_store {
         fn set_secret(&self, secret: &[u8]) -> Result<()> {
             use std::os::unix::fs::PermissionsExt;
             let path = credential_path(&self.base, &self.service, &self.user);
-            let dir = path.parent().unwrap();
+            let dir = path.parent().ok_or_else(|| {
+                Error::PlatformFailure(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "credential path has no parent directory",
+                )))
+            })?;
             fs::create_dir_all(dir)
                 .map_err(|e| Error::PlatformFailure(Box::new(e)))?;
             fs::set_permissions(dir, fs::Permissions::from_mode(0o700))
