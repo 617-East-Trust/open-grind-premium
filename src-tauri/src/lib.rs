@@ -1,4 +1,5 @@
-mod api;
+// `api` is `pub` so that `ci/fingerprint_check.rs` can reuse same header / client builders
+pub mod api;
 mod error;
 mod state;
 mod storage;
@@ -12,20 +13,20 @@ use api::client::GrindrClient;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-	#[cfg(debug_assertions)]
-	let devtools = tauri_plugin_devtools::init();
+    #[cfg(debug_assertions)]
+    let devtools = tauri_plugin_devtools::init();
 
     let (ws_tx, ws_rx) = mpsc::channel(64);
     let auth_notify = Arc::new(Notify::new());
 
     let mut builder = tauri::Builder::default();
 
-	#[cfg(debug_assertions)]
+    #[cfg(debug_assertions)]
     {
         builder = builder.plugin(devtools);
     }
 
-	builder
+    builder
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_geolocation::init())

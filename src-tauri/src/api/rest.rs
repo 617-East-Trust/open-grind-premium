@@ -1,15 +1,16 @@
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use reqwest::Method;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use wreq::header::{HeaderName, HeaderValue};
+use wreq::{Method, RequestBuilder};
 
 use crate::error::AppError;
 use crate::state::AppState;
 
 use super::client::GrindrClient;
 use super::client::BASE_URL;
-use super::headers::grindr_roles_header_value;
+use super::headers::GrindrHeaders;
 
 #[derive(Serialize, Deserialize)]
 pub struct RawResponse {
@@ -18,7 +19,16 @@ pub struct RawResponse {
     pub body: Vec<u8>,
 }
 
+fn apply_headers(mut req: RequestBuilder, items: &[(HeaderName, HeaderValue)]) -> RequestBuilder {
+    for (name, value) in items {
+        req = req.header(name.clone(), value.clone());
+    }
+    req
+}
+
 impl GrindrClient {
+    /// Only for login / refresh-token paths (`/v8/sessions`), they reject `Authorization` headers
+	/// Also breaks the recursive cycle of authorization_header -> refresh_token -> create_session
     pub(super) async fn request_json<TReq, TResp>(
         &self,
         method: Method,
@@ -29,8 +39,15 @@ impl GrindrClient {
         TReq: Serialize + ?Sized,
         TResp: DeserializeOwned,
     {
+        let device = self.device.read().await.clone();
+        let user_agent = self.user_agent.read().await.clone();
+        let headers = GrindrHeaders::build(&device, &user_agent, None, None)?;
+
         let http = self.http.read().await.clone();
-        let mut request = http.request(method, format!("{BASE_URL}{path}"));
+        let mut request = apply_headers(
+            http.request(method, format!("{BASE_URL}{path}")),
+            &headers.items,
+        );
 
         if let Some(body) = body {
             request = request.json(body);
@@ -64,44 +81,35 @@ impl GrindrClient {
             .await
             .ok_or_else(|| AppError::Auth("Not logged in".to_owned()))?;
 
-        let http = self.http.read().await.clone();
-        let mut request = http
-            .request(method, format!("{BASE_URL}{path}"))
-            .header("Authorization", authorization)
-            .header("L-Grindr-Roles", grindr_roles_header_value());
+        let device = self.device.read().await.clone();
+        let user_agent = self.user_agent.read().await.clone();
 
-        if let Some(body) = body {
-            let json_body: serde_json::Value = rmp_serde::from_slice(&body)
-                .map_err(|e| AppError::Http(format!("Failed to decode msgpack body: {e}")))?;
-            request = request
-                .header("Content-Type", "application/json")
-                .json(&json_body);
-        }
-
-        let request = request.build().map_err(|e| AppError::Http(e.to_string()))?;
+        let headers =
+            GrindrHeaders::build(&device, &user_agent, Some(&authorization), Some("[FREE]"))?;
 
         #[cfg(debug_assertions)]
         {
             println!("=== OUTGOING REQUEST ===");
-            println!("Method: {}", request.method());
-            println!("URL:    {}", request.url());
-            println!("Headers:");
-            let default_headers = self.default_headers.read().await;
-            for (name, value) in default_headers.iter().chain(request.headers()) {
-                println!("  {}: {}", name, value.to_str().unwrap_or("<binary>"));
-            }
-            if let Some(b) = request.body() {
-                match b.as_bytes() {
-                    Some(bytes) => println!("Body: {}", String::from_utf8_lossy(bytes)),
-                    None => println!("Body: <streaming>"),
-                }
-            } else {
-                println!("Body: <none>");
+            println!("Method+Path: {method} {path}");
+            for (name, value) in &headers.items {
+                println!("  {name}: {}", value.to_str().unwrap_or("<binary>"));
             }
             println!("========================");
         }
 
-        let response = http.execute(request).await?;
+        let http = self.http.read().await.clone();
+        let mut request = apply_headers(
+            http.request(method, format!("{BASE_URL}{path}")),
+            &headers.items,
+        );
+
+        if let Some(body) = body {
+            let json_body: serde_json::Value = rmp_serde::from_slice(&body)
+                .map_err(|e| AppError::Http(format!("Failed to decode msgpack body: {e}")))?;
+            request = request.json(&json_body);
+        }
+
+        let response = request.send().await?;
         let status = response.status().as_u16();
         let body = response.bytes().await?.to_vec();
 

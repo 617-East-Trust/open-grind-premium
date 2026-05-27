@@ -125,7 +125,7 @@ impl AuthStorage {
 impl GrindrClient {
     async fn create_session(&self, body: &impl AuthRequest) -> Result<Session, AppError> {
         let session_resp: SessionResponse = self
-            .request_json(reqwest::Method::POST, "/v8/sessions", Some(body))
+            .request_json(wreq::Method::POST, "/v8/sessions", Some(body))
             .await?;
         let claims = decode_session_jwt(&session_resp.session_id)?;
 

@@ -39,5 +39,6 @@
 	},
 	"[nix]": {
 		"editor.defaultFormatter": "jnoortheen.nix-ide"
-	}
+	},
+	"rust-analyzer.diagnostics.disabled": ["unlinked-file"]
 }

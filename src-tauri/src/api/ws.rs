@@ -1,17 +1,16 @@
 use std::time::Duration;
 
-use futures_util::{SinkExt, StreamExt};
+use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::time::sleep;
-use tokio_tungstenite::{
-    connect_async,
-    tungstenite::{client::IntoClientRequest, http::HeaderValue, Message},
-};
+use wreq::websocket::{Message, WebSocket};
 
 use crate::error::AppError;
 use crate::state::AppState;
+
+use super::headers::GrindrHeaders;
 
 const WS_URL: &str = "wss://grindr.mobi/v1/ws";
 
@@ -57,38 +56,35 @@ async fn run_ws_loop(app: AppHandle) {
 
 async fn connect_and_run(app: &AppHandle) -> Result<(), AppError> {
     let state = app.state::<AppState>();
+    let client = state.client()?;
 
-    let authorization = state
-        .client()?
+    let authorization = client
         .authorization_header()
         .await
         .ok_or_else(|| AppError::Auth("Not logged in".to_owned()))?;
 
-    let mut request = WS_URL
-        .into_client_request()
-        .map_err(|e| AppError::Http(format!("Failed to build WS request: {e}")))?;
+    let device = client.device.read().await.clone();
+    let user_agent = client.user_agent.read().await.clone();
 
-    {
-        let headers = request.headers_mut();
-        headers.insert(
-            "Authorization",
-            HeaderValue::from_str(&authorization)
-                .map_err(|e| AppError::Http(format!("Invalid auth header: {e}")))?,
-        );
-        headers.insert(
-            "User-Agent",
-            HeaderValue::from_str(&state.client()?.user_agent.read().await.clone())
-                .map_err(|e| AppError::Http(format!("Invalid user-agent: {e}")))?,
-        );
+    let headers = GrindrHeaders::build(&device, &user_agent, Some(&authorization), Some("[FREE]"))?;
+
+    let ws_http = client.ws_http.read().await.clone();
+    let mut builder = ws_http.websocket(WS_URL);
+    for (name, value) in &headers.items {
+        builder = builder.header(name.clone(), value.clone());
     }
 
-    let (ws_stream, _) = connect_async(request)
+    let response = builder
+        .send()
         .await
         .map_err(|e| AppError::Http(format!("WS connect failed: {e}")))?;
 
-    app.emit("ws:connected", ()).ok();
+    let mut ws = response
+        .into_websocket()
+        .await
+        .map_err(|e| AppError::Http(format!("WS upgrade failed: {e}")))?;
 
-    let (mut write, mut read) = ws_stream.split();
+    app.emit("ws:connected", ()).ok();
 
     let mut cmd_rx = state
         .ws_rx
@@ -97,8 +93,7 @@ async fn connect_and_run(app: &AppHandle) -> Result<(), AppError> {
         .take()
         .ok_or_else(|| AppError::Http("WS already running".to_owned()))?;
 
-    let session_id = state
-        .client()?
+    let session_id = client
         .session
         .read()
         .await
@@ -106,7 +101,7 @@ async fn connect_and_run(app: &AppHandle) -> Result<(), AppError> {
         .map(|s| s.session_id.clone())
         .ok_or_else(|| AppError::Auth("Not logged in".to_owned()))?;
 
-    let result = run_message_loop(&mut write, &mut read, &mut cmd_rx, &session_id, app).await;
+    let result = run_message_loop(&mut ws, &mut cmd_rx, &session_id, app).await;
 
     *state.ws_rx.lock().await = Some(cmd_rx);
 
@@ -114,17 +109,16 @@ async fn connect_and_run(app: &AppHandle) -> Result<(), AppError> {
 }
 
 async fn run_message_loop(
-    write: &mut (impl SinkExt<Message, Error = tokio_tungstenite::tungstenite::Error> + Unpin),
-    read: &mut (impl StreamExt<Item = Result<Message, tokio_tungstenite::tungstenite::Error>> + Unpin),
+    ws: &mut WebSocket,
     cmd_rx: &mut tokio::sync::mpsc::Receiver<WsCommand>,
     session_id: &str,
     app: &AppHandle,
 ) -> Result<(), AppError> {
     loop {
         tokio::select! {
-            msg = read.next() => match msg {
+            msg = ws.next() => match msg {
                 Some(Ok(Message::Text(text))) => {
-                    if let Ok(val) = serde_json::from_str::<Value>(&text) {
+                    if let Ok(val) = serde_json::from_str::<Value>(text.as_str()) {
                         if let Some(event_type) = val["type"].as_str() {
                             let safe_type = event_type.replace('.', "_");
                             app.emit(&format!("grindr:{safe_type}"), &val).ok();
@@ -132,7 +126,7 @@ async fn run_message_loop(
                     }
                 }
                 Some(Ok(Message::Ping(data))) => {
-                    write.send(Message::Pong(data)).await
+                    ws.send(Message::Pong(data)).await
                         .map_err(|e| AppError::Http(e.to_string()))?;
                 }
                 Some(Ok(Message::Close(_))) | None => {
@@ -152,8 +146,7 @@ async fn run_message_loop(
                         "token": session_id,
                         "payload": cmd.payload,
                     });
-                    write
-                        .send(Message::Text(json.to_string().into()))
+                    ws.send(Message::text(json.to_string()))
                         .await
                         .map_err(|e| AppError::Http(e.to_string()))?;
                 }

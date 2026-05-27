@@ -1,12 +1,12 @@
 use keyring_core::Entry;
 use rand;
-use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
+use wreq::header::{HeaderName, HeaderValue};
 
 use crate::error::AppError;
 
-const APP_VERSION: &str = "26.7.0.159416";
-const BUILD_NUMBER: &str = "159416";
+const APP_VERSION: &str = "26.8.2.162647";
+const BUILD_NUMBER: &str = "162647";
 const MAX_ANDROID_VERSION: u8 = 16;
 
 struct DeviceProfile {
@@ -336,7 +336,6 @@ const DEVICE_PROFILES: &[DeviceProfile] = &[
     },
 ];
 
-/// (timezone, L-Locale, Accept-Language)
 pub const SAFE_TIMEZONES: &[&str] = &[
     // Europe
     "Europe/Dublin",
@@ -445,40 +444,93 @@ pub fn build_user_agent(device: &DeviceInfo, subscription_tier: &str) -> String 
     )
 }
 
-pub fn build_default_headers(device: &DeviceInfo, user_agent: &str) -> HeaderMap {
-    let mut headers = HeaderMap::new();
-
-    let device_info = format!(
+pub fn build_device_info_header(device: &DeviceInfo) -> String {
+    format!(
         "{};GLOBAL;{};{};{};{}",
         device.device_id,
         device.device_type,
         device.total_ram,
         device.screen_resolution,
         device.advertising_id
-    );
-    headers.insert("Accept", HeaderValue::from_static("application/json"));
-    headers.insert("User-Agent", HeaderValue::from_str(user_agent).unwrap());
-    headers.insert("L-Locale", HeaderValue::from_str(&device.locale).unwrap());
-    headers.insert(
-        "Accept-language",
-        HeaderValue::from_str(&device.accept_language).unwrap(),
-    );
-    // Authorization?
-    headers.insert(
-        "L-Time-Zone",
-        HeaderValue::from_str(&device.timezone).unwrap(),
-    );
-    headers.insert(
-        "L-Device-Info",
-        HeaderValue::from_str(&device_info).unwrap(),
-    );
-    // headers.insert("requireRealDeviceInfo", HeaderValue::from_static("true"));
-
-    headers
+    )
 }
 
-pub fn grindr_roles_header_value() -> HeaderValue {
-    HeaderValue::from_static("[FREE]")
+/// References https://opengrind.org/grindr-api/security-headers#correct-headers-order
+///   1. Authorization (optional)
+///   2. L-Time-Zone
+///   3. L-Grindr-Roles (only when authorized)
+///   4. L-Device-Info
+///   5. Accept
+///   6. User-Agent
+///   7. L-Locale
+///   8. Accept-language (lowercase `l`)
+///   9. Accept-Encoding (always `gzip`)
+///
+/// `Content-Type`, `Content-Length`/`Transfer-Encoding` and `Cookie` are added
+/// by wreq itself. `Host` is moved to the `:authority` pseudo-header in HTTP/2.
+pub struct GrindrHeaders {
+    pub items: Vec<(HeaderName, HeaderValue)>,
+}
+
+impl GrindrHeaders {
+    pub fn build(
+        device: &DeviceInfo,
+        user_agent: &str,
+        authorization: Option<&str>,
+        l_grindr_roles: Option<&str>,
+    ) -> Result<Self, AppError> {
+        let mut items: Vec<(HeaderName, HeaderValue)> = Vec::with_capacity(8);
+
+        if let Some(auth) = authorization {
+            items.push((
+                HeaderName::from_static("authorization"),
+                HeaderValue::from_str(auth).map_err(invalid_header)?,
+            ));
+        }
+
+        items.push((
+            HeaderName::from_static("l-time-zone"),
+            HeaderValue::from_str(&device.timezone).map_err(invalid_header)?,
+        ));
+
+        if let Some(roles) = l_grindr_roles {
+            items.push((
+                HeaderName::from_static("l-grindr-roles"),
+                HeaderValue::from_str(roles).map_err(invalid_header)?,
+            ));
+        }
+
+        items.push((
+            HeaderName::from_static("l-device-info"),
+            HeaderValue::from_str(&build_device_info_header(device)).map_err(invalid_header)?,
+        ));
+        items.push((
+            HeaderName::from_static("accept"),
+            HeaderValue::from_static("application/json"),
+        ));
+        items.push((
+            HeaderName::from_static("user-agent"),
+            HeaderValue::from_str(user_agent).map_err(invalid_header)?,
+        ));
+        items.push((
+            HeaderName::from_static("l-locale"),
+            HeaderValue::from_str(&device.locale).map_err(invalid_header)?,
+        ));
+        items.push((
+            HeaderName::from_static("accept-language"),
+            HeaderValue::from_str(&device.accept_language).map_err(invalid_header)?,
+        ));
+        items.push((
+            HeaderName::from_static("accept-encoding"),
+            HeaderValue::from_static("gzip"),
+        ));
+
+        Ok(Self { items })
+    }
+}
+
+fn invalid_header<E: std::fmt::Display>(e: E) -> AppError {
+    AppError::Http(format!("Invalid header value: {e}"))
 }
 
 #[cfg(test)]
@@ -502,33 +554,62 @@ mod tests {
     }
 
     #[test]
-    fn default_headers_include_grindr_device_identity() {
+    fn user_agent_format() {
         let device = test_device();
-        let user_agent = build_user_agent(&device, "Free");
-        let headers = build_default_headers(&device, &user_agent);
-        let expected_user_agent =
-            format!("grindr3/{APP_VERSION};{BUILD_NUMBER};Free;Android 14;Pixel 8;Google");
-
+        let ua = build_user_agent(&device, "Free");
         assert_eq!(
-            headers.get("L-Device-Info").unwrap(),
-            "device123;GLOBAL;2;8026152960;1080x2400;ad-id-123"
+            ua,
+            format!("grindr3/{APP_VERSION};{BUILD_NUMBER};Free;Android 14;Pixel 8;Google")
         );
-        assert_eq!(
-            headers.get("User-Agent").unwrap(),
-            expected_user_agent.as_str()
-        );
-        assert!(headers.get("L-Grindr-Roles").is_none());
     }
 
     #[test]
-    fn default_headers_include_locale_timezone_and_json_accepts() {
+    fn device_info_header_format() {
         let device = test_device();
-        let user_agent = build_user_agent(&device, "Unlimited");
-        let headers = build_default_headers(&device, &user_agent);
+        assert_eq!(
+            build_device_info_header(&device),
+            "device123;GLOBAL;2;8026152960;1080x2400;ad-id-123"
+        );
+    }
 
-        assert_eq!(headers.get("L-Time-Zone").unwrap(), "Europe/Madrid");
-        assert_eq!(headers.get("L-Locale").unwrap(), "en_US");
-        assert_eq!(headers.get("Accept-Language").unwrap(), "en-US");
-        assert_eq!(headers.get("Accept").unwrap(), "application/json");
+    #[test]
+    fn headers_anonymous_order() {
+        let device = test_device();
+        let headers = GrindrHeaders::build(&device, "ua/1.0", None, None).unwrap();
+        let names: Vec<&str> = headers.items.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            names,
+            vec![
+                "l-time-zone",
+                "l-device-info",
+                "accept",
+                "user-agent",
+                "l-locale",
+                "accept-language",
+                "accept-encoding",
+            ]
+        );
+    }
+
+    #[test]
+    fn headers_authorized_order() {
+        let device = test_device();
+        let headers =
+            GrindrHeaders::build(&device, "ua/1.0", Some("Grindr3 sid"), Some("[FREE]")).unwrap();
+        let names: Vec<&str> = headers.items.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            names,
+            vec![
+                "authorization",
+                "l-time-zone",
+                "l-grindr-roles",
+                "l-device-info",
+                "accept",
+                "user-agent",
+                "l-locale",
+                "accept-language",
+                "accept-encoding",
+            ]
+        );
     }
 }

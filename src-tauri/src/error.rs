@@ -24,8 +24,8 @@ impl fmt::Display for AppError {
 
 impl std::error::Error for AppError {}
 
-impl From<reqwest::Error> for AppError {
-    fn from(e: reqwest::Error) -> Self {
+impl From<wreq::Error> for AppError {
+    fn from(e: wreq::Error) -> Self {
         AppError::Http(e.to_string())
     }
 }
