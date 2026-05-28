@@ -10,8 +10,7 @@ mod file_store {
 
     fn credential_path(base: &PathBuf, _service: &str, user: &str) -> PathBuf {
         let safe = |s: &str| s.replace(['/', '\\', '\0', ':'], "_");
-        base.join("credentials")
-            .join(safe(user))
+        base.join("credentials").join(safe(user))
     }
 
     #[derive(Debug, Clone)]
@@ -31,11 +30,12 @@ mod file_store {
                     "credential path has no parent directory",
                 )))
             })?;
-            fs::create_dir_all(dir)
-                .map_err(|e| Error::PlatformFailure(Box::new(e)))?;
+            fs::create_dir_all(dir).map_err(|e| Error::PlatformFailure(Box::new(e)))?;
             fs::set_permissions(dir, fs::Permissions::from_mode(0o700))
                 .map_err(|e| Error::PlatformFailure(Box::new(e)))?;
-            fs::write(&path, secret).map_err(|e| Error::PlatformFailure(Box::new(e)))
+            fs::write(&path, secret).map_err(|e| Error::PlatformFailure(Box::new(e)))?;
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
+                .map_err(|e| Error::PlatformFailure(Box::new(e)))
         }
 
         fn get_secret(&self) -> Result<Vec<u8>> {
