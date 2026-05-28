@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { ChatIcon, StarIcon } from "phosphor-svelte";
+
 	import { Badge } from "$lib/components/ui/badge";
 	import UserAvatar from "$lib/components/UserAvatar.svelte";
 
@@ -9,6 +11,8 @@
 		distance = null,
 		medias = null,
 		unread = null,
+		isFavorite = false,
+		hadRecentChat = false,
 	}: {
 		id: number;
 		displayName?: string | null;
@@ -16,6 +20,8 @@
 		distance?: number | null;
 		medias?: { mediaHash: string }[] | null;
 		unread?: number | null;
+		isFavorite?: boolean;
+		hadRecentChat?: boolean;
 	} = $props();
 
 	const profilePicture = $derived(medias?.[0]);
@@ -64,13 +70,41 @@
 				{unread}
 			</span>
 		{/if}
+		{#if isFavorite || hadRecentChat}
+			<div
+				class="absolute top-2 inset-s-2 flex gap-1 items-center w-1/6 flex-col"
+			>
+				{#if isFavorite}
+					<div class="badge">
+						<StarIcon
+							weight="fill"
+							class="text-yellow-500 icon size-4/6 m-auto"
+						/>
+					</div>
+				{/if}
+				{#if hadRecentChat}
+					<div class="badge">
+						<ChatIcon
+							weight="fill"
+							class="text-sky-400 size-3/5 m-auto -translate-y-px"
+						/>
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 </a>
 
-<style>
+<style lang="postcss">
+	@reference "$layout";
+
 	.text-shadow-stroke {
 		text-shadow:
 			0px 1px 1px rgba(0, 0, 0, 0.2),
 			0px 0px 2px rgba(0, 0, 0, 0.2);
+	}
+
+	.badge {
+		@apply flex bg-popover/40 rounded-full backdrop-blur-2xl w-full h-auto aspect-square border border-white/10;
 	}
 </style>

@@ -100,6 +100,8 @@
 					id={item.id}
 					displayName={item.displayName}
 					distance={item.distance}
+					isFavorite={item.isFavorite}
+					hadRecentChat={item.hasChattedInLast24Hrs}
 					medias={item.profilePhotosHashes?.map((mediaHash) => ({
 						mediaHash,
 					})) ?? []}

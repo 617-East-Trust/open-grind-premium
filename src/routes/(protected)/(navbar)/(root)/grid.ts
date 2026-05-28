@@ -8,6 +8,8 @@ export type FullGridProfile = {
 	distance: number | null;
 	profilePhotosHashes: string[] | null;
 	unread: number | null;
+	isFavorite: boolean;
+	hasChattedInLast24Hrs: boolean;
 };
 
 export type PartialGridProfile = {
@@ -34,6 +36,8 @@ export async function getGrid(query: Parameters<typeof getCascadeV3>[0]) {
 				distance: profile.distanceMeters ?? null,
 				profilePhotosHashes: profile.photoMediaHashes,
 				unread: profile.unreadCount ?? null,
+				isFavorite: profile.isFavorite,
+				hasChattedInLast24Hrs: profile.hasChattedInLast24Hrs,
 			});
 		} else if (item.type === "partial_profile_v1") {
 			if (currentBatch.length === 150) {
@@ -80,5 +84,9 @@ export async function resolvePartialBatch(
 			distance: profile.distance ?? null,
 			profilePhotosHashes: profile.medias?.map((m) => m.mediaHash) ?? null,
 			unread: null,
+			isFavorite: profile.isFavorite,
+			hasChattedInLast24Hrs:
+				profile.lastChatTimestamp !== null &&
+				Date.now() - profile.lastChatTimestamp < 24 * 60 * 60 * 1000,
 		}));
 }
