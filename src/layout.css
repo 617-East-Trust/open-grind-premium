@@ -111,6 +111,9 @@ body {
 	user-select: none;
 	-webkit-user-select: none;
 	--content-pb: calc(4rem + var(--safe-area-bottom));
+	text-rendering: geometricPrecision;
+	image-rendering: optimizeQuality;
+	shape-rendering: geometricPrecision;
 }
 
 a {

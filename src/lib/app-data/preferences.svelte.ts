@@ -4,7 +4,7 @@ import z from "zod";
 
 import { gridSearchFiltersSchema } from "$lib/components/filters/filters";
 import { geohashSchema } from "$lib/model/geohash";
-import { existsAppDataFile, readAppDataFile, writeAppDataFile } from ".";
+import { existsAppDataFile, readAppDataFile, writeAppDataFileAtomic } from ".";
 
 const preferencesSchema = z.object({
 	geohash: geohashSchema.nullable().default(null),
@@ -14,43 +14,70 @@ const preferencesSchema = z.object({
 	warnBeforeCopyingErrorDetails: z.boolean().default(true),
 });
 
-export async function getPreferences(): Promise<
-	z.infer<typeof preferencesSchema>
-> {
-	if (await existsAppDataFile("preferences.data")) {
-		return await readAppDataFile("preferences.data")
-			.then(decode)
-			.then((data) => preferencesSchema.parse(data))
-			.catch((e) => {
-				toast.error("Failed to load preferences. Reset to defaults?", {
-					action: {
-						label: "Reset",
-						onClick: async () => {
-							await writeAppDataFile(
-								"preferences.data",
-								encode(preferencesSchema.parse({})),
-							);
-							window.location.reload();
-						},
-					},
-					duration: 10000,
-					id: "load-preferences-error",
-				});
-				throw e;
-			});
-	} else {
+type Preferences = z.infer<typeof preferencesSchema>;
+
+let writeQueue: Promise<unknown> = Promise.resolve();
+
+function enqueueWrite<T>(task: () => Promise<T>): Promise<T> {
+	const run = writeQueue.then(task);
+	writeQueue = run.then(
+		() => undefined,
+		() => undefined,
+	);
+	return run;
+}
+
+let cache: Preferences | null = null;
+let hydrating: Promise<Preferences> | null = null;
+
+async function readFromDisk(): Promise<Preferences> {
+	if (!(await existsAppDataFile("preferences.data"))) {
 		return preferencesSchema.parse({});
 	}
+	const bytes = await readAppDataFile("preferences.data");
+	return preferencesSchema.parse(decode(bytes));
+}
+
+export async function getPreferences(): Promise<Preferences> {
+	if (cache !== null) return structuredClone(cache);
+	hydrating ??= readFromDisk()
+		.then((preferences) => (cache = preferences))
+		.catch((error: unknown) => {
+			toast.error("Failed to load preferences. Reset to defaults?", {
+				action: {
+					label: "Reset",
+					onClick: () => void resetToDefaults(),
+				},
+				duration: 10000,
+				id: "load-preferences-error",
+			});
+			throw error;
+		})
+		.finally(() => {
+			hydrating = null;
+		});
+	return structuredClone(await hydrating);
 }
 
 export async function setPreferences(
-	newValues: Partial<z.infer<typeof preferencesSchema>>,
+	newValues: Partial<Preferences>,
 ): Promise<void> {
-	const oldValues = await getPreferences();
-	const preferences = {
-		...oldValues,
-		...newValues,
-	};
-	preferencesSchema.parse(preferences);
-	await writeAppDataFile("preferences.data", encode(preferences));
+	await enqueueWrite(async () => {
+		const oldValues = await getPreferences();
+		const preferences = preferencesSchema.parse({
+			...oldValues,
+			...newValues,
+		});
+		await writeAppDataFileAtomic("preferences.data", encode(preferences));
+		cache = preferences;
+	});
+}
+
+async function resetToDefaults(): Promise<void> {
+	await enqueueWrite(async () => {
+		const preferences = preferencesSchema.parse({});
+		await writeAppDataFileAtomic("preferences.data", encode(preferences));
+		cache = preferences;
+	});
+	window.location.reload();
 }

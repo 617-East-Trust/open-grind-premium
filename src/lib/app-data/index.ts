@@ -4,6 +4,7 @@ import {
 	exists,
 	mkdir,
 	readFile,
+	rename,
 	writeFile,
 } from "@tauri-apps/plugin-fs";
 
@@ -17,11 +18,19 @@ export async function readAppDataFile(path: string) {
 	});
 }
 
-export async function writeAppDataFile(path: string, content: Uint8Array) {
+export async function writeAppDataFileAtomic(
+	path: string,
+	content: Uint8Array,
+) {
 	await mkdir(await appDataDir(), {
 		recursive: true,
 	});
-	await writeFile(path, content, {
+	const tempPath = `${path}.tmp`;
+	await writeFile(tempPath, content, {
 		baseDir: BaseDirectory.AppData,
+	});
+	await rename(tempPath, path, {
+		oldPathBaseDir: BaseDirectory.AppData,
+		newPathBaseDir: BaseDirectory.AppData,
 	});
 }
