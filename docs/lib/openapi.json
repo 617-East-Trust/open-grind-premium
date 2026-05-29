@@ -284,10 +284,46 @@
 					}
 				},
 				"summary": "Sign in",
-				"description": "Make sure you're passing all [Security headers](/grindr-api/security-headers) or you might stumble upon `{\"code\":28,\"message\":\"ACCOUNT_BANNED\",\"profileId\":null,\"type\":1,\"reason\":null,\"isBanAutomated\":true,\"thirdPartyUserIdToShow\":null,\"banSubReason\":null}` — but don't fret — it's a fake error, your account isn't banned and API simply blocked your request, not account.",
+				"description": "Make sure you're passing all [Security headers](/grindr-api/security-headers) or you might stumble upon `{\"code\":28,\"message\":\"ACCOUNT_BANNED\",\"profileId\":null,\"type\":1,\"reason\":null,\"isBanAutomated\":true,\"thirdPartyUserIdToShow\":null,\"banSubReason\":null}` — but don't fret — it's a fake error, your account isn't banned and API simply blocked your request, not account. Endpoint selection depends on the `recaptcha_first_party` [assignment](/grindr-api/analytics/assignments): when disabled (default) sign-in uses `/v8/sessions`; when enabled the client uses `POST /v9/sessions` with an extra `captchaToken`, sharing the same body otherwise.",
 				"x-errors": {
 					"ACCOUNT_BANNED": "could be malformed request",
 					"INVALID_INPUT_PARAMETERS": "incorrect credentials"
+				}
+			}
+		},
+		"/v9/sessions": {
+			"post": {
+				"tags": [
+					"authentication"
+				],
+				"operationId": "signInV9",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SessionCreateRequestV9"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthSessionResponse"
+								}
+							}
+						},
+						"description": "OK"
+					}
+				},
+				"summary": "Sign in via reCAPTCHA",
+				"description": "reCAPTCHA variant of `POST /v8/sessions`. The client uses this endpoint instead of `/v8/sessions` only when the `recaptcha_first_party` [assignment](/grindr-api/analytics/assignments) is enabled. That assignment is sent by server and resolved before login. The body is identical to `SessionCreateRequest` plus a `captchaToken` (a reCAPTCHA Enterprise token for the `login` action). The official client always populates `captchaToken` here and aborts locally if it can't obtain one, so a `null`/absent token never reaches this endpoint from the app.",
+				"x-errors": {
+					"ACCOUNT_BANNED": "could be malformed request",
+					"INVALID_INPUT_PARAMETERS": "incorrect credentials; on this endpoint a rejected `captchaToken` (e.g. expired or low-score) is also a plausible cause — server behavior, not confirmed from the client"
 				}
 			}
 		},
@@ -7455,45 +7491,6 @@
 				"description": "Doesn't appear to influence the phrase's sorting position in [Get saved phrases](/grindr-api/messaging/saved-phrases#get-saved-phrases) response. Increments value in [Get saved phrases (legacy)](/grindr-api/messaging/saved-phrases#get-saved-phrases-legacy) endpoint."
 			}
 		},
-		"/v?/sessions/email": {
-			"post": {
-				"tags": [
-					"settings/account"
-				],
-				"operationId": "loginEmail",
-				"summary": "Login via email",
-				"x-wip": true,
-				"x-wip-note": "URL is dynamic and currently unknown.",
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"allOf": [
-									{
-										"$ref": "#/components/schemas/UndocumentedObject"
-									}
-								],
-								"x-original-type": "LoginEmailRequest"
-							}
-						}
-					}
-				},
-				"responses": {
-					"200": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/UndocumentedObject",
-									"x-original-type": "AuthResponse"
-								}
-							}
-						},
-						"description": "OK"
-					}
-				}
-			}
-		},
 		"/v?/users/registration/email": {
 			"post": {
 				"tags": [
@@ -9940,6 +9937,28 @@
 					"authToken",
 					"token",
 					"geohash"
+				]
+			},
+			"SessionCreateRequestV9": {
+				"description": "Request body for [Sign in via reCAPTCHA](#sign-in-via-recaptcha) (`POST /v9/sessions`). Identical to `SessionCreateRequest` plus one extra field, `captchaToken`. The client uses this shape only when the `recaptcha_first_party` [assignment](/grindr-api/analytics/assignments) is enabled for the device.",
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/SessionCreateRequest"
+					},
+					{
+						"type": "object",
+						"properties": {
+							"captchaToken": {
+								"type": "string",
+								"nullable": true,
+								"description": "reCAPTCHA Enterprise token for the `FirstPartyLogin` action. Non-null for the email + password sign-in; `null` for the `authToken` session-refresh flow. The token is only fetched by device when the `recaptcha_first_party` assignment is enabled."
+							}
+						}
+					}
+				],
+				"x-render-on-tag": "authentication",
+				"required": [
+					"captchaToken"
 				]
 			},
 			"AuthSessionResponse": {
