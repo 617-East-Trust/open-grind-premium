@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getNow, subscribeNow } from "$lib/now.svelte";
 	import { formatTimeRelativeCustom } from "$lib/utils";
 
 	let {
@@ -7,13 +8,11 @@
 		date: number;
 	} = $props();
 
-	let relativeTime = $derived(formatTimeRelativeCustom(date));
+	$effect(() => subscribeNow());
 
-	$effect(() => {
-		const interval = setInterval(() => {
-			relativeTime = formatTimeRelativeCustom(date);
-		}, 1000);
-		return () => clearInterval(interval);
+	const relativeTime = $derived.by(() => {
+		void getNow();
+		return formatTimeRelativeCustom(date);
 	});
 </script>
 
