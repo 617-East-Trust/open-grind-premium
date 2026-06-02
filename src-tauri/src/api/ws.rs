@@ -76,7 +76,7 @@ async fn connect_and_run(app: &AppHandle) -> Result<(), AppError> {
         &fp.device,
         &fp.user_agent,
         Some(&authorization),
-        Some("[FREE]"),
+        Some("[PREMIUM,UNLIMITED]"),
     )?;
 
     let mut builder = fp.ws_http.websocket(WS_URL);
