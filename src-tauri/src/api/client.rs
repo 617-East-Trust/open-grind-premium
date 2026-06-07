@@ -170,10 +170,10 @@ impl GrindrClient {
         #[cfg(all(target_os = "macos", not(feature = "keychain")))]
         let session = None;
         #[cfg(not(all(target_os = "macos", not(feature = "keychain"))))]
-        let session = match super::auth::AuthStorage::get_session() {
+        let session = match super::auth::AuthStorage::get_active_session() {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("[client] could not load session: {e}");
+                eprintln!("[client] could not load active session: {e}");
                 None
             }
         };
@@ -196,10 +196,18 @@ impl GrindrClient {
 
     #[allow(dead_code)]
     pub async fn reload_session(&self) {
-        match super::auth::AuthStorage::get_session() {
+        match super::auth::AuthStorage::get_active_session() {
             Ok(s) => *self.session.write().await = s,
             Err(e) => eprintln!("[client] reload_session: {e}"),
         }
+    }
+
+    pub async fn set_active_session(&self, session: Session) {
+        *self.session.write().await = Some(session);
+    }
+
+    pub async fn clear_session(&self) {
+        *self.session.write().await = None;
     }
 }
 

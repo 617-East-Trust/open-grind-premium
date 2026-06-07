@@ -33,6 +33,37 @@ export const methods = {
 		request: z.undefined(),
 		response: z.undefined(),
 	},
+	add_account: {
+		request: z.object({
+			email: z.email(),
+			password: z.string().min(1),
+		}),
+		response: z.object({
+			profileId: z.string(),
+		}),
+	},
+	switch_account: {
+		request: z.object({
+			profileId: z.string(),
+		}),
+		response: z.undefined(),
+	},
+	remove_account: {
+		request: z.object({
+			profileId: z.string(),
+		}),
+		response: z.undefined(),
+	},
+	list_accounts: {
+		request: z.undefined(),
+		response: z.array(
+			z.object({
+				profileId: z.string(),
+				email: z.string(),
+				isActive: z.boolean(),
+			}),
+		),
+	},
 } satisfies Record<string, { request: z.ZodType; response: z.ZodType }>;
 
 export async function callMethod<T extends keyof typeof methods>(

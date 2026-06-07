@@ -40,6 +40,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             api::auth::login,
+            api::auth::add_account,
+            api::auth::switch_account,
+            api::auth::remove_account,
+            api::auth::list_accounts,
             api::auth::refresh_token,
             api::auth::logout,
             api::auth::auth_state,

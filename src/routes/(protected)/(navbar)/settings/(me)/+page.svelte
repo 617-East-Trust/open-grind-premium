@@ -6,6 +6,8 @@
 	import ProfileLink from "./ProfileLink.svelte";
 	import SignOutButton from "./SignOutButton.svelte";
 	import Socials from "./Socials.svelte";
+	import SwitchAccountButton from "./SwitchAccountButton.svelte";
+	import AddAccountButton from "./AddAccountButton.svelte";
 
 	const { data }: import("./$types").PageProps = $props();
 </script>
@@ -16,6 +18,8 @@
 		<span role="separator"></span>
 		<AccountSettingsLink />
 		<AppSettingsLink />
+		<SwitchAccountButton />
+		<AddAccountButton />
 		<SignOutButton />
 		<span role="separator"></span>
 		<Socials />
