@@ -94,7 +94,7 @@ export async function callMethod<T extends keyof typeof methods>(
 		});
 		return raw as z.infer<(typeof methods)[T]["response"]>;
 	}
-	return parsed.data;
+	return parsed.data as z.infer<(typeof methods)[T]["response"]>;
 }
 
 export function asAppError(error: unknown) {
