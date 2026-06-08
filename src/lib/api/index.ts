@@ -88,11 +88,16 @@ export async function callMethod<T extends keyof typeof methods>(
 	const schema = methods[method].response;
 	const parsed = schema.safeParse(raw);
 	if (!parsed.success) {
-		console.error(`[api] response validation failed for "${String(method)}":`, {
+		console.error(`[api] response validation failed for "${String(method)}"`, {
 			issues: parsed.error.issues,
 			raw,
 		});
-		return raw as z.infer<(typeof methods)[T]["response"]>;
+		throw new ApiError({
+			message: `Response validation failed for "${String(method)}"`,
+			request: { method: String(method), path: String(method) },
+			response: null,
+			cause: parsed.error,
+		});
 	}
 	return parsed.data as z.infer<(typeof methods)[T]["response"]>;
 }
