@@ -61,10 +61,12 @@
 						</Card.Description>
 					{:else}
 						<Card.Description class="truncate">
-							{#if profile.distance < 1000}
-								{Math.round(profile.distance)} m
+							{#if profile.distance / 1609.344 < 0.1}
+								{Math.round(profile.distance * 3.28084)} ft
+							{:else if profile.distance / 1609.344 < 10}
+								{(profile.distance / 1609.344).toFixed(1)} mi
 							{:else}
-								{(profile.distance / 1000).toFixed(1)} km
+								{Math.round(profile.distance / 1609.344)} mi
 							{/if}
 						</Card.Description>
 					{/if}

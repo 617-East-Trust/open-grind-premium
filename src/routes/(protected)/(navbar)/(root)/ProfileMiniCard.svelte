@@ -25,6 +25,19 @@
 	} = $props();
 
 	const profilePicture = $derived(medias?.[0]);
+
+	// API returns distance in metres; convert to miles for display.
+	const METRES_PER_MILE = 1609.344;
+	function formatDistance(metres: number): string {
+		const miles = metres / METRES_PER_MILE;
+		if (miles < 0.1) {
+			return `${Math.round(metres * 3.28084)} ft`;
+		} else if (miles < 10) {
+			return `${miles.toFixed(1)} mi`;
+		} else {
+			return `${Math.round(miles)} mi`;
+		}
+	}
 </script>
 
 <a href="/profile/{id}" class="aspect-square relative flex items-end">
@@ -39,7 +52,7 @@
 		<span
 			class="absolute top-1 right-1 border-transparent bg-transparent text-[11px] px-1 h-4 tracking-tight font-medium text-white/80 text-shadow-stroke"
 		>
-			{(distance / 1000).toFixed(1)} km
+			{formatDistance(distance)}
 		</span>
 	{/if}
 	<div class="w-full z-1 flex p-0.5 gap-0.5">
