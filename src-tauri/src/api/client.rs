@@ -55,7 +55,7 @@ fn build_api_client() -> Result<Client, AppError> {
         .map_err(Into::into)
 }
 
-fn build_ws_client() -> Result<Client, AppError> {
+pub(super) fn build_ws_client() -> Result<Client, AppError> {
     Client::builder()
         .emulation(grindr_emulation())
         .gzip(true)

@@ -4,13 +4,14 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use wreq::header::{HeaderName, HeaderValue};
 use wreq::{Method, RequestBuilder};
+use std::sync::Arc;
 
 use crate::error::AppError;
 use crate::state::AppState;
 
-use super::client::GrindrClient;
+use super::client::{build_api_client, Fingerprint, GrindrClient};
 use super::client::BASE_URL;
-use super::headers::GrindrHeaders;
+use super::headers::{build_user_agent, DeviceInfo, DeviceStorage, GrindrHeaders};
 
 #[derive(Serialize, Deserialize)]
 pub struct RawResponse {
@@ -106,9 +107,79 @@ impl GrindrClient {
         let response = request.send().await?;
         let status = response.status().as_u16();
         let body = response.bytes().await?.to_vec();
+
+        // Auto-rotate fingerprint on 401/403 (but not on login/session paths,
+        // where these statuses are expected and not a detection signal).
+        let is_auth_path = path.starts_with("/v8/sessions");
+        if !is_auth_path && (status == 401 || status == 403) {
+            eprintln!("[premium] received HTTP {status} on {path} — rotating fingerprint and retrying once");
+            self.rotate_fingerprint().await;
+            // Rebuild request with fresh fingerprint.
+            let fp = self.fingerprint().await;
+            let headers = GrindrHeaders::build(
+                &fp.device,
+                &fp.user_agent,
+                Some(&authorization),
+                Some("[PREMIUM,UNLIMITED]"),
+            )?;
+            let mut retry_request = apply_headers(
+                fp.http.request(method, format!("{BASE_URL}{path}")),
+                &headers.items,
+            );
+            if let Some(body) = body.as_ref() {
+                if let Ok(json_body) = rmp_serde::from_slice::<serde_json::Value>(body) {
+                    retry_request = retry_request.json(&json_body);
+                }
+            }
+            match retry_request.send().await {
+                Ok(retry_resp) => {
+                    let retry_status = retry_resp.status().as_u16();
+                    let retry_body = retry_resp.bytes().await.unwrap_or_default().to_vec();
+                    let (status, body) = maybe_rewrite_response(retry_status, path, retry_body);
+                    return Ok(RawResponse { status, body });
+                }
+                Err(e) => {
+                    eprintln!("[premium] retry after fingerprint rotation also failed: {e}");
+                    // Fall through to the original response handling below.
+                }
+            }
+        }
+
         let (status, body) = maybe_rewrite_response(status, path, body);
 
         Ok(RawResponse { status, body })
+    }
+
+    /// Generate a fresh device fingerprint and replace the current one.
+    /// Used internally by `request_raw` on 401/403 to evade detection, and
+    /// mirrors the public `rotate_api_params` Tauri command.
+    async fn rotate_fingerprint(&self) {
+        let device = DeviceInfo::default();
+        if let Err(e) = DeviceStorage::save(&device) {
+            eprintln!("[premium] could not persist rotated device info: {e}");
+        }
+        let user_agent = build_user_agent(&device, "Unlimited");
+        let http = match build_api_client() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("[premium] failed to build new HTTP client: {e}");
+                return;
+            }
+        };
+        let ws_http = match super::client::build_ws_client() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("[premium] failed to build new WS client: {e}");
+                return;
+            }
+        };
+        let new_fp = Arc::new(Fingerprint {
+            http,
+            ws_http,
+            device,
+            user_agent,
+        });
+        *self.fingerprint.write().await = new_fp;
     }
 }
 
@@ -168,6 +239,16 @@ fn maybe_rewrite_response(status: u16, path: &str, body: Vec<u8>) -> (u16, Vec<u
         // Ensure rightNow exists even if the server omits it.
         json["rightNow"] = serde_json::json!(999);
         json["total"] = serde_json::json!(999);
+        let new_body = serde_json::to_vec(&json).unwrap_or(body);
+        return (status, new_body);
+    } else if path.starts_with("/v1/me") {
+        // `/v1/me` also returns user profile data including subscription status.
+        // Inject the same premium subscription object as /v3/me/profile.
+        json["subscription"] = serde_json::json!({
+            "premium": true,
+            "userRole": "UNLIMITED",
+            "subscriptionTier": "UNLIMITED"
+        });
         let new_body = serde_json::to_vec(&json).unwrap_or(body);
         return (status, new_body);
     } else if path.starts_with("/v3/me/profile") || path.starts_with("/v4/subscriptions") {
@@ -268,4 +349,247 @@ pub async fn request(
         rmp_serde::encode::to_vec_named(&raw).map_err(|e| AppError::Http(e.to_string()))?;
 
     Ok(STANDARD.encode(&response_bytes))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── helpers ───────────────────────────────────────────────────────────
+
+    fn call_rewrite(status: u16, path: &str, json_body: serde_json::Value) -> (u16, serde_json::Value) {
+        let body = serde_json::to_vec(&json_body).unwrap();
+        let (new_status, new_body) = maybe_rewrite_response(status, path, body);
+        let new_json: serde_json::Value = serde_json::from_slice(&new_body).unwrap();
+        (new_status, new_json)
+    }
+
+    fn assert_premium_subscription(json: &serde_json::Value) {
+        let sub = &json["subscription"];
+        assert_eq!(sub["premium"], true, "subscription.premium should be true");
+        assert_eq!(sub["userRole"], "UNLIMITED", "subscription.userRole should be UNLIMITED");
+        assert_eq!(sub["subscriptionTier"], "UNLIMITED", "subscription.subscriptionTier should be UNLIMITED");
+    }
+
+    // ── bootstrap ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_bootstrap_injects_unlimited_role() {
+        let input = serde_json::json!({
+            "userRole": "FREE",
+            "featureFlags": {"someFlag": false}
+        });
+        let (status, json) = call_rewrite(200, "/v3/bootstrap", input);
+        assert_eq!(status, 200);
+        assert_eq!(json["userRole"], "UNLIMITED");
+        assert_eq!(json["subscriptionTier"], "UNLIMITED");
+    }
+
+    #[test]
+    fn test_bootstrap_injects_all_feature_flags() {
+        let input = serde_json::json!({
+            "userRole": "FREE",
+            "featureFlags": {"someFlag": false}
+        });
+        let (_, json) = call_rewrite(200, "/v3/bootstrap", input);
+        let flags = json["featureFlags"].as_object().unwrap();
+        // Premium flags should be set
+        assert_eq!(flags["readReceipts"], true);
+        assert_eq!(flags["incognitoMode"], true);
+        assert_eq!(flags["typingStatus"], true);
+        assert_eq!(flags["unlimitedTaps"], true);
+        assert_eq!(flags["unlimitedFavorites"], true);
+        assert_eq!(flags["unlimitedBlocks"], true);
+        assert_eq!(flags["expire24hProfile"], true);
+        assert_eq!(flags["hideDistance"], true);
+        assert_eq!(flags["boosts"], true);
+        assert_eq!(flags["profileViews"], true);
+        assert_eq!(flags["tapAndGo"], true);
+        // Server-side A/B flags should be preserved
+        assert_eq!(flags["someFlag"], false);
+    }
+
+    #[test]
+    fn test_bootstrap_handles_missing_feature_flags() {
+        let input = serde_json::json!({"userRole": "FREE"});
+        let (_, json) = call_rewrite(200, "/v3/bootstrap", input);
+        assert!(json["featureFlags"].is_object());
+        assert_eq!(json["featureFlags"]["readReceipts"], true);
+    }
+
+    // ── entitlements ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_entitlements_injects_rightnow() {
+        let input = serde_json::json!({"rightNow": 5, "total": 5});
+        let (_, json) = call_rewrite(200, "/v1/entitlements", input);
+        assert_eq!(json["rightNow"], 999);
+        assert_eq!(json["total"], 999);
+    }
+
+    #[test]
+    fn test_entitlements_handles_missing_fields() {
+        let input = serde_json::json!({});
+        let (_, json) = call_rewrite(200, "/v1/entitlements", input);
+        assert_eq!(json["rightNow"], 999);
+        assert_eq!(json["total"], 999);
+    }
+
+    // ── profile / subscriptions ────────────────────────────────────────────
+
+    #[test]
+    fn test_profile_injects_premium_subscription() {
+        let input = serde_json::json!({
+            "subscription": {"premium": false, "userRole": "FREE"}
+        });
+        let (_, json) = call_rewrite(200, "/v3/me/profile", input);
+        assert_premium_subscription(&json);
+    }
+
+    #[test]
+    fn test_subscriptions_injects_premium_tier() {
+        let input = serde_json::json!({"subscription": {"tier": "FREE"}});
+        let (_, json) = call_rewrite(200, "/v4/subscriptions", input);
+        assert_premium_subscription(&json);
+    }
+
+    #[test]
+    fn test_v1_me_injects_premium_subscription() {
+        let input = serde_json::json!({
+            "profileId": "abc123",
+            "subscription": {"premium": false, "userRole": "FREE"}
+        });
+        let (_, json) = call_rewrite(200, "/v1/me", input);
+        assert_premium_subscription(&json);
+        // Other fields preserved
+        assert_eq!(json["profileId"], "abc123");
+    }
+
+    // ── ban bypass ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_ban_bypass_status_field() {
+        let input = serde_json::json!({"status": "banned"});
+        let (status, json) = call_rewrite(403, "/v3/bootstrap", input);
+        assert_eq!(status, 200);
+        assert_eq!(json["status"], "ok");
+    }
+
+    #[test]
+    fn test_ban_bypass_suspended() {
+        let input = serde_json::json!({"status": "suspended"});
+        let (status, json) = call_rewrite(403, "/v3/me/profile", input);
+        assert_eq!(status, 200);
+        assert_eq!(json["status"], "ok");
+    }
+
+    #[test]
+    fn test_ban_bypass_restricted() {
+        let input = serde_json::json!({"status": "restricted"});
+        let (status, json) = call_rewrite(403, "/v1/entitlements", input);
+        assert_eq!(status, 200);
+        assert_eq!(json["status"], "ok");
+    }
+
+    #[test]
+    fn test_ban_bypass_error_code() {
+        let input = serde_json::json!({"code": 40301});
+        let (status, json) = call_rewrite(403, "/v3/bootstrap", input);
+        assert_eq!(status, 200);
+        assert_eq!(json["status"], "ok");
+    }
+
+    #[test]
+    fn test_ban_bypass_multiple_error_codes() {
+        for code in [40300, 40301, 40302, 40303] {
+            let input = serde_json::json!({"code": code});
+            let (status, json) = call_rewrite(403, "/v3/bootstrap", input);
+            assert_eq!(status, 200, "code {code} should trigger ban bypass");
+            assert_eq!(json["status"], "ok");
+        }
+    }
+
+    #[test]
+    fn test_ban_bypass_ignores_ok_status() {
+        let input = serde_json::json!({"status": "ok", "userRole": "FREE"});
+        let (status, json) = call_rewrite(200, "/v3/bootstrap", input);
+        // Should NOT trigger ban bypass — should apply bootstrap rewrite
+        assert_eq!(status, 200);
+        assert_eq!(json["userRole"], "UNLIMITED");
+    }
+
+    // ── inbox ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_inbox_removes_upgrade_required() {
+        let input = serde_json::json!({"messages": [], "upgradeRequired": true});
+        let (_, json) = call_rewrite(200, "/v2/inbox", input);
+        assert!(json.get("upgradeRequired").is_none(), "upgradeRequired should be removed");
+    }
+
+    #[test]
+    fn test_v3_inbox_removes_upgrade_required() {
+        let input = serde_json::json!({"messages": [], "upgradeRequired": true});
+        let (_, json) = call_rewrite(200, "/v3/inbox", input);
+        assert!(json.get("upgradeRequired").is_none());
+    }
+
+    // ── settings ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_settings_injects_premium_defaults() {
+        let input = serde_json::json!({});
+        let (_, json) = call_rewrite(200, "/v3/me/settings", input);
+        assert_eq!(json["showDistance"], true);
+        assert_eq!(json["incognito"], false);
+    }
+
+    #[test]
+    fn test_settings_preserves_existing_values() {
+        let input = serde_json::json!({"showDistance": false});
+        let (_, json) = call_rewrite(200, "/v3/me/settings", input);
+        // showDistance already exists, should keep its value via or_insert
+        assert_eq!(json["showDistance"], false);
+        // incognito should be added since it doesn't exist
+        assert_eq!(json["incognito"], false);
+    }
+
+    // ── passthrough (non-matching paths, non-JSON responses) ───────────────
+
+    #[test]
+    fn test_non_matching_path_passes_through() {
+        let input = serde_json::json!({"some": "data"});
+        let body = serde_json::to_vec(&input).unwrap();
+        let (status, new_body) = maybe_rewrite_response(200, "/v1/some/other/path", body);
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_slice(&new_body).unwrap();
+        assert_eq!(json, input);
+    }
+
+    #[test]
+    fn test_non_json_body_passes_through() {
+        let body = b"this is not json".to_vec();
+        let (status, new_body) = maybe_rewrite_response(200, "/v3/bootstrap", body);
+        assert_eq!(status, 200);
+        assert_eq!(new_body, b"this is not json");
+    }
+
+    #[test]
+    fn test_case_insensitive_path_matching() {
+        let input = serde_json::json!({"userRole": "FREE"});
+        let (_, json) = call_rewrite(200, "/V3/Bootstrap", input);
+        assert_eq!(json["userRole"], "UNLIMITED");
+    }
+
+    // ── precedence: ban bypass beats other rewrites ────────────────────────
+
+    #[test]
+    fn test_ban_bypass_takes_precedence() {
+        // Even on a known rewrite path, ban status should win
+        let input = serde_json::json!({"status": "banned", "userRole": "FREE"});
+        let (status, json) = call_rewrite(403, "/v3/bootstrap", input);
+        assert_eq!(status, 200);
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json.get("userRole"), None, "bootstrap rewrite should not apply after ban bypass");
+    }
 }

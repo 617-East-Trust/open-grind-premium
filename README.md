@@ -1,3 +1,7 @@
+> **🚀 Open Grind Premium** — This is the **Premium fork** of Open Grind with full Unlimited-tier feature injection. See [PREMIUM.md](./PREMIUM.md) for the complete feature map, architecture, and API rewrite details.
+
+---
+
 # Open Grind
 
 [![Matrix space](https://img.shields.io/matrix/opengrind:opengrind.org?server_fqdn=matrix.opengrind.org&fetchMode=summary&label=matrix%20space)](https://matrix.to/#/#opengrind:opengrind.org) [![chat](https://img.shields.io/matrix/general:opengrind.org?server_fqdn=matrix.opengrind.org&fetchMode=summary&label=chat)](https://matrix.to/#/#general:opengrind.org) [![Announcements](https://img.shields.io/matrix/announcements:opengrind.org?server_fqdn=matrix.opengrind.org&fetchMode=summary&label=announcements)](https://matrix.to/#/#announcements:opengrind.org)
