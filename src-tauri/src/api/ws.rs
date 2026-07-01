@@ -252,6 +252,7 @@ async fn run_message_loop(
         tokio::select! {
             msg = ws.next() => match msg {
                 Some(Ok(Message::Text(text))) => {
+                    #[allow(clippy::collapsible_if)]
                     if let Ok(val) = serde_json::from_str::<Value>(text.as_str()) {
                         if let Some(event_type) = val["type"].as_str() {
                             let safe_type = event_type.replace('.', "_");

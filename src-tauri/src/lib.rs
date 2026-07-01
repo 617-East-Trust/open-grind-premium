@@ -1,4 +1,5 @@
 // `api` is `pub` so that `ci/fingerprint_check.rs` can reuse same header / client builders
+#![allow(clippy::needless_return)]
 pub mod api;
 mod error;
 mod state;

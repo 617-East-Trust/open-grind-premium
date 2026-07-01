@@ -36,6 +36,7 @@ pub struct GrindrClient {
     pub(super) refresh_lock: Mutex<()>,
     /// Rotation circuit-breaker state.
     pub(super) last_rotation: AtomicI64,
+    #[allow(dead_code)]
     pub(super) consecutive_rotations: AtomicU32,
 }
 

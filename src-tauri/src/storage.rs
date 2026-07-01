@@ -7,7 +7,7 @@ mod file_store {
     use std::path::PathBuf;
     use std::sync::Arc;
 
-    fn credential_path(base: &PathBuf, _service: &str, user: &str) -> PathBuf {
+    fn credential_path(base: &std::path::Path, _service: &str, user: &str) -> PathBuf {
         let safe = |s: &str| s.replace(['/', '\\', '\0', ':'], "_");
         base.join("credentials").join(safe(user))
     }
