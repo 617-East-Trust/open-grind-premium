@@ -97,7 +97,7 @@ impl GrindrClient {
                 &fp.device,
                 &fp.user_agent,
                 Some(&authorization),
-                Some("[PREMIUM,UNLIMITED]"),
+                None, // P0 #1: Removed L-Grindr-Roles header,
             )?;
 
             #[cfg(debug_assertions)]
@@ -141,7 +141,7 @@ impl GrindrClient {
                     &fp.device,
                     &fp.user_agent,
                     Some(&authorization),
-                    Some("[PREMIUM,UNLIMITED]"),
+                    None, // P0 #1: Removed L-Grindr-Roles header,
                 )?;
                 let mut retry_request = apply_headers(
                     fp.http.request(method, format!("{BASE_URL}{path}")),
@@ -257,8 +257,9 @@ fn maybe_rewrite_response(status: u16, path: &str, body: Vec<u8>) -> (u16, Vec<u
         return (status, new_body);
     } else if path.starts_with("/v1/entitlements") {
         // Ensure rightNow exists even if the server omits it.
-        json["rightNow"] = serde_json::json!(999);
-        json["total"] = serde_json::json!(999);
+        // P1 #15: Use realistic values (3-5) to avoid detection
+        json["rightNow"] = serde_json::json!(3);
+        json["total"] = serde_json::json!(5);
         let new_body = serde_json::to_vec(&json).unwrap_or(body);
         return (status, new_body);
     } else if path.starts_with("/v1/me") {
@@ -292,6 +293,29 @@ fn maybe_rewrite_response(status: u16, path: &str, body: Vec<u8>) -> (u16, Vec<u
             obj.entry("incognito".to_string())
                 .or_insert(serde_json::json!(false));
         }
+        let new_body = serde_json::to_vec(&json).unwrap_or(body);
+        return (status, new_body);
+    } else if path.starts_with("/v3/me/prefs") {
+        // Inject premium preference defaults
+        if let Some(obj) = json.as_object_mut() {
+            obj.entry("showOnlineStatus".to_string()).or_insert(serde_json::json!(true));
+            obj.entry("showLastSeen".to_string()).or_insert(serde_json::json!(true));
+        }
+        let new_body = serde_json::to_vec(&json).unwrap_or(body);
+        return (status, new_body);
+    } else if path.starts_with("/v1/views") {
+        // Profile views - remove truncation gates
+        json.as_object_mut().map(|m| m.insert("canViewAll".to_string(), serde_json::json!(true)));
+        let new_body = serde_json::to_vec(&json).unwrap_or(body);
+        return (status, new_body);
+    } else if path.starts_with("/v1/favorites") {
+        // Remove favorites limit
+        json.as_object_mut().map(|m| m.insert("maxFavorites".to_string(), serde_json::json!(999)));
+        let new_body = serde_json::to_vec(&json).unwrap_or(body);
+        return (status, new_body);
+    } else if path.starts_with("/v4/album") || path.starts_with("/v3/album") {
+        // Remove album upgrade gating
+        json.as_object_mut().map(|m| m.remove("requiresUpgrade"));
         let new_body = serde_json::to_vec(&json).unwrap_or(body);
         return (status, new_body);
     } else {

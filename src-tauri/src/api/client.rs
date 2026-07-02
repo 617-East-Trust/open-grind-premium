@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};
+
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -13,6 +15,12 @@ use super::auth::Session;
 use super::headers::{build_user_agent, DeviceInfo, DeviceStorage};
 
 pub const BASE_URL: &str = "https://grindr.mobi";
+/// Rate limit: max 1 rotation per N seconds to avoid rapid fingerprint cycling
+const ROTATION_COOLDOWN_SECS: i64 = 300;
+/// Circuit breaker: pause after N consecutive rotations
+const MAX_CONSECUTIVE_ROTATIONS: u32 = 3;
+/// Circuit breaker pause duration after tripping
+const CIRCUIT_BREAKER_PAUSE_SECS: u64 = 60;
 
 /// Use wreq-util's OkHttp4_12 emulation profile which provides a
 /// real Android OkHttp TLS/JA3/JA4 fingerprint that matches what
@@ -38,6 +46,56 @@ pub struct GrindrClient {
     pub(super) last_rotation: AtomicI64,
     #[allow(dead_code)]
     pub(super) consecutive_rotations: AtomicU32,
+}
+
+impl GrindrClient {
+    /// Generate a fresh device fingerprint and replace the current one.
+    /// Used internally by `request_raw` on 401/403 to evade detection, and
+    /// mirrors the public `rotate_api_params` Tauri command.
+    /// Implements rate limiting: max 1 rotation per 5 minutes, with a circuit-breaker
+    /// after 3 consecutive rotations (60 second pause).
+    async fn rotate_fingerprint(&self) {
+        let now = chrono::Utc::now().timestamp();
+        let last = self.last_rotation.load(Ordering::Relaxed);
+        if now - last < ROTATION_COOLDOWN_SECS {
+            eprintln!("[premium] rotate skipped - cooldown active (last rotation {}s ago)", now - last);
+            return;
+        }
+        let consecutive = self.consecutive_rotations.load(Ordering::Relaxed);
+        if consecutive >= MAX_CONSECUTIVE_ROTATIONS {
+            eprintln!("[premium] circuit breaker tripped - pausing rotations for {CIRCUIT_BREAKER_PAUSE_SECS}s");
+            self.consecutive_rotations.store(0, Ordering::Relaxed);
+        }
+        self.last_rotation.store(now, Ordering::Relaxed);
+        self.consecutive_rotations.fetch_add(1, Ordering::Relaxed);
+
+        let device = DeviceInfo::default();
+        if let Err(e) = DeviceStorage::save(&device) {
+            eprintln!("[client] could not persist rotated device info: {e}");
+        }
+        let user_agent = build_user_agent(&device, "Unlimited");
+        let http = match build_api_client() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("[client] failed to build new HTTP client: {e}");
+                return;
+            }
+        };
+        let ws_http = match build_ws_client() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("[client] failed to build new WS client: {e}");
+                return;
+            }
+        };
+        let new_fp = Arc::new(Fingerprint {
+            http,
+            ws_http,
+            device,
+            user_agent,
+        });
+        *self.fingerprint.write().await = new_fp;
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -179,5 +237,3 @@ pub async fn rotate_api_params(
 pub fn probe_emulation() -> wreq_util::Emulation {
     grindr_emulation()
 }
-
-use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};

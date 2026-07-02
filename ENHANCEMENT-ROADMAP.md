@@ -181,22 +181,22 @@ Missing:
 
 | Priority | Item | Effort |
 |:--------|:-----|:-------|
-| P0 | #1 Remove L-Grindr-Roles header | Small |
-| P0 | #4 Fix duplicate timezones | Trivial |
-| P0 | #9 Fix clippy warnings | Trivial |
-| P0 | #11 Fix method.clone() perf | Trivial |
-| P1 | #16 Rate limiter for auto-rotate | Medium |
-| P1 | #15 Realistic entitlement values | Small |
-| P1 | #3 Expand device profile pool | Medium |
-| P1 | #19 Add cargo test/clippy to CI | Small |
-| P1 | #6 WS message buffering | Medium |
+| ~~P0~~ | ~~#1 Remove L-Grindr-Roles header~~ | ✅ **Done** - Removed from ALL outbound requests |
+| ~~P0~~ | ~~#4 Fix duplicate timezones~~ | ✅ **Done** - US timezones already added |
+| ~~P0~~ | ~~#9 Fix clippy warnings~~ | ⏳ Pending - requires full Cargo check |
+| ~~P0~~ | ~~#11 Fix method.clone() perf~~ | ✅ **Done** - Only clones for retry path |
+| ~~P1~~ | ~~#16 Rate limiter for auto-rotate~~ | ✅ **Done** - 300s cooldown, 3 rotation breaker |
+| ~~P1~~ | ~~#15 Realistic entitlement values~~ | ✅ **Done** - Using `view_count.max(3).min(5)` |
+| ~~P1~~ | ~~#3 Expand device profile pool~~ | Medium |
+| ~~P1~~ | ~~#19 Add cargo test/clippy to CI~~ | Small |
+| ~~P1~~ | ~~#6 WS message buffering~~ | Medium |
 | P2 | #2 Dynamic APP_VERSION fetching | Medium |
 | P2 | #5 Android Doze WS resilience | Medium |
 | P2 | #7 Session expiry race fix | Small |
 | P2 | #8 Universal keyring fallback | Small |
 | P2 | #10 Add error logging to unwrap_or | Small |
 | P2 | #13 Fixture-based response tests | Medium |
-| P2 | #14 More API interception points | Medium |
+| P2 | #14 More API interception points | ✅ **Done** - Added `/v1/views`, `/v3/me/prefs`, `/v1/favorites`, `/v4/album` |
 | P2 | #18 Structured logging (tracing) | Medium |
 | P3 | #12 Add clippy.toml/rustfmt.toml | Trivial |
 | P3 | #17 Fingerprint hash for debug UI | Small |
