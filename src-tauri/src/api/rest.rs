@@ -318,7 +318,35 @@ fn maybe_rewrite_response(status: u16, path: &str, body: Vec<u8>) -> (u16, Vec<u
         json.as_object_mut().map(|m| m.remove("requiresUpgrade"));
         let new_body = serde_json::to_vec(&json).unwrap_or(body);
         return (status, new_body);
-    } else {
+        } else if path.starts_with("/v3/me/prefs") {
+        // P2 #14: Inject premium preferences so UI shows all options
+        if let Some(obj) = json.as_object_mut() {
+            obj.entry("showOnlineStatus".to_string())
+                .or_insert(serde_json::json!(true));
+            obj.entry("showLastSeen".to_string())
+                .or_insert(serde_json::json!(true));
+        }
+        let new_body = serde_json::to_vec(&json).unwrap_or(body);
+        return (status, new_body);
+    } else if path.starts_with("/v1/views") {
+        // P2 #14: Remove view paywall restrictions
+        json.as_object_mut().map(|m| {
+            m.insert("canViewAll".to_string(), serde_json::json!(true));
+            m.remove("truncatedProfiles");
+        });
+        let new_body = serde_json::to_vec(&json).unwrap_or(body);
+        return (status, new_body);
+    } else if path.starts_with("/v1/favorites") {
+        // P2 #14: Remove favorites limit
+        json.as_object_mut().map(|m| m.insert("maxFavorites".to_string(), serde_json::json!(999)));
+        let new_body = serde_json::to_vec(&json).unwrap_or(body);
+        return (status, new_body);
+    } else if path.starts_with("/v4/album") || path.starts_with("/v3/album") {
+        // P2 #14: Remove album upgrade requirement
+        json.as_object_mut().map(|m| m.remove("requiresUpgrade"));
+        let new_body = serde_json::to_vec(&json).unwrap_or(body);
+        return (status, new_body);
+} else {
         return (status, body);
     }
 }
