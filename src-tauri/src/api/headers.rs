@@ -5,8 +5,20 @@ use wreq::header::{HeaderName, HeaderValue};
 
 use crate::error::AppError;
 
-const APP_VERSION: &str = "26.9.1.163471";
-const BUILD_NUMBER: &str = "163471";
+/// Fallback version if dynamic fetch fails
+const FALLBACK_APP_VERSION: &str = "26.9.1.163471";
+const FALLBACK_BUILD_NUMBER: &str = "163471";
+
+/// Returns the current app version (dynamic or fallback).
+/// The version module handles its own fallback internally.
+fn app_version() -> String {
+    super::version::app_version()
+}
+
+/// Returns the current build number (dynamic or fallback).
+fn build_number() -> String {
+    super::version::build_number()
+}
 const MAX_ANDROID_VERSION: u8 = 16;
 
 struct DeviceProfile {
@@ -775,7 +787,7 @@ impl DeviceStorage {
 
 pub fn build_user_agent(device: &DeviceInfo, subscription_tier: &str) -> String {
     format!(
-        "grindr3/{APP_VERSION};{BUILD_NUMBER};{subscription_tier};{};{};{}",
+        "grindr3/{app_version()};{build_number()};{subscription_tier};{};{};{}",
         device.os, device.device_model, device.manufacturer
     )
 }
@@ -898,7 +910,7 @@ mod tests {
         let ua = build_user_agent(&device, "Free");
         assert_eq!(
             ua,
-            format!("grindr3/{APP_VERSION};{BUILD_NUMBER};Free;Android 14;Pixel 8;Google")
+            format!("grindr3/{FALLBACK_APP_VERSION};{FALLBACK_BUILD_NUMBER};Free;Android 14;Pixel 8;Google")
         );
     }
 

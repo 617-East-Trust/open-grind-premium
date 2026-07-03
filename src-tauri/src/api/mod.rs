@@ -3,3 +3,4 @@ pub mod client;
 pub mod headers;
 pub mod rest;
 pub mod ws;
+pub mod version;

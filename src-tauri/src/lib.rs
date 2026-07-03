@@ -90,6 +90,11 @@ pub fn run() {
                 });
             }
             api::ws::spawn_ws_task(app.handle().clone());
+            // Fetch latest app version from Play Store in the background.
+            // Falls back to hardcoded constants on failure.
+            tauri::async_runtime::spawn(async {
+                api::version::fetch_and_update().await;
+            });
             Ok(())
         })
         .run(tauri::generate_context!())
