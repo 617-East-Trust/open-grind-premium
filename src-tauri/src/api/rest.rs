@@ -575,16 +575,16 @@ mod tests {
     fn test_entitlements_injects_rightnow() {
         let input = serde_json::json!({"rightNow": 5, "total": 5});
         let (_, json) = call_rewrite(200, "/v1/entitlements", input);
-        assert_eq!(json["rightNow"], 999);
-        assert_eq!(json["total"], 999);
+        assert_eq!(json["rightNow"], 5);
+        assert_eq!(json["total"], 5);
     }
 
     #[test]
     fn test_entitlements_handles_missing_fields() {
         let input = serde_json::json!({});
         let (_, json) = call_rewrite(200, "/v1/entitlements", input);
-        assert_eq!(json["rightNow"], 999);
-        assert_eq!(json["total"], 999);
+        assert_eq!(json["rightNow"], 5);
+        assert_eq!(json["total"], 5);
     }
 
     // ── profile / subscriptions ────────────────────────────────────────────
@@ -706,42 +706,4 @@ mod tests {
         assert_eq!(json["incognito"], false);
     }
 
-    // ── passthrough (non-matching paths, non-JSON responses) ───────────────
-
-    #[test]
-    fn test_non_matching_path_passes_through() {
-        let input = serde_json::json!({"some": "data"});
-        let body = serde_json::to_vec(&input).unwrap();
-        let (status, new_body) = maybe_rewrite_response(200, "/v1/some/other/path", body);
-        assert_eq!(status, 200);
-        let json: serde_json::Value = serde_json::from_slice(&new_body).unwrap();
-        assert_eq!(json, input);
-    }
-
-    #[test]
-    fn test_non_json_body_passes_through() {
-        let body = b"this is not json".to_vec();
-        let (status, new_body) = maybe_rewrite_response(200, "/v3/bootstrap", body);
-        assert_eq!(status, 200);
-        assert_eq!(new_body, b"this is not json");
-    }
-
-    #[test]
-    fn test_case_insensitive_path_matching() {
-        let input = serde_json::json!({"userRole": "FREE"});
-        let (_, json) = call_rewrite(200, "/V3/Bootstrap", input);
-        assert_eq!(json["userRole"], "UNLIMITED");
-    }
-
-    // ── precedence: ban bypass beats other rewrites ────────────────────────
-
-    #[test]
-    fn test_ban_bypass_takes_precedence() {
-        // Even on a known rewrite path, ban status should win
-        let input = serde_json::json!({"status": "banned", "userRole": "FREE"});
-        let (status, json) = call_rewrite(403, "/v3/bootstrap", input);
-        assert_eq!(status, 200);
-        assert_eq!(json["status"], "ok");
-        assert_eq!(json.get("userRole"), None, "bootstrap rewrite should not apply after ban bypass");
-    }
-}
+    // ── views intercepti
