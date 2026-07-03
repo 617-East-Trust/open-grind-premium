@@ -190,7 +190,7 @@ Missing:
 | ~~P1~~ | ~~#3 Expand device profile pool~~ | Medium |
 | ~~P1~~ | ~~#19 Add cargo test/clippy to CI~~ | Small |
 | ~~P1~~ | ~~#6 WS message buffering~~ | Medium |
-| P2 | #2 Dynamic APP_VERSION fetching | Medium |
+| P2 | #2 Dynamic APP_VERSION fetching | ✅ **Done** - Fetches from Play Store at startup, 24h cache, fallback constants |
 | P2 | #5 Android Doze WS resilience | Medium |
 | P2 | #7 Session expiry race fix | Small |
 | P2 | #8 Universal keyring fallback | Small |
