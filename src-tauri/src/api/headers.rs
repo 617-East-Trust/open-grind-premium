@@ -5,8 +5,11 @@ use wreq::header::{HeaderName, HeaderValue};
 
 use crate::error::AppError;
 
-const APP_VERSION: &str = "26.9.1.163471";
-const BUILD_NUMBER: &str = "163471";
+use super::version::{FALLBACK_APP_VERSION, FALLBACK_BUILD_NUMBER};
+
+const APP_VERSION: &str = FALLBACK_APP_VERSION;
+const BUILD_NUMBER: &str = FALLBACK_BUILD_NUMBER;
+
 const MAX_ANDROID_VERSION: u8 = 16;
 
 struct DeviceProfile {
