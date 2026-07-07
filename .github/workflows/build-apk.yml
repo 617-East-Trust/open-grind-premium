@@ -88,6 +88,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Initialize Android project
+        run: bun run tauri android init
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          NDK_HOME: ${{ env.NDK_HOME }}
+
       - name: Build frontend
         run: bun run build
 
