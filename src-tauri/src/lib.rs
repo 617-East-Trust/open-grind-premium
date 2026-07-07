@@ -48,6 +48,7 @@ pub fn run() {
             ws_rx: tokio::sync::Mutex::new(Some(ws_rx)),
             auth_notify,
             is_foreground: AtomicBool::new(true),
+            ws_buffer: Mutex::new(Vec::new()),
         })
         .invoke_handler(tauri::generate_handler![
             api::auth::login,
