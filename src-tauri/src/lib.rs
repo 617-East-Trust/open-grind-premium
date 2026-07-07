@@ -6,9 +6,9 @@ mod state;
 mod storage;
 
 use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 use tauri::Manager;
-use tokio::sync::{mpsc, Notify};
+use tokio::sync::{mpsc, Mutex, Notify};
 
 use crate::state::AppState;
 use api::client::GrindrClient;

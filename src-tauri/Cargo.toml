@@ -4,7 +4,7 @@ version = "0.1.0-alpha.19"
 description = "FLOSS Grindr client"
 authors = ["Open Grind Governance (https://opengrind.org/governance)"]
 homepage = "https://opengrind.org"
-edition = "2021"
+edition = "2024"
 rust-version = "1.85"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
