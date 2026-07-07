@@ -20,7 +20,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-android
           components: clippy
 
       - name: Check
@@ -56,7 +56,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-android
           components: clippy
 
       - name: Setup Java
@@ -80,7 +80,7 @@ jobs:
           bash ./scripts/bump-version.sh
 
       - name: Decode keystore
-        if: github.event_name == 'release' && secrets.OPEN_GRIND_KEYSTORE_BASE64 != ''
+        if: github.event_name == 'release'
         run: |
           echo "${{ secrets.OPEN_GRIND_KEYSTORE_BASE64 }}" | base64 -d > open-grind.keystore
           echo "OPEN_GRIND_KEYSTORE_PATH=$(pwd)/open-grind.keystore" >> $GITHUB_ENV
