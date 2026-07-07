@@ -6,7 +6,7 @@ mod state;
 mod storage;
 
 use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use tauri::Manager;
 use tokio::sync::{mpsc, Notify};
 
