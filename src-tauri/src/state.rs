@@ -9,8 +9,10 @@ use crate::error::AppError;
 pub struct AppState {
     pub client: OnceLock<Arc<GrindrClient>>,
     pub ws_tx: mpsc::Sender<WsCommand>,
-    pub ws_rx: tokio::sync::Mutex<Option<mpsc::Receiver<WsCommand>>>,
+    pub ws_rx: Mutex<Option<mpsc::Receiver<WsCommand>>>,
     pub auth_notify: Arc<Notify>,
+    /// Buffered outbound WS commands held during disconnect. Flushed on reconnect.
+    pub ws_buffer: Mutex<Vec<WsCommand>>,
     /// true when the WebView is visible/active; false when app is backgrounded.
     /// Used by the WS loop to decide whether to post system notifications.
     pub is_foreground: AtomicBool,

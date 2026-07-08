@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::sync::atomic::{AtomicI64, AtomicU32};
+use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};
 
 use serde::Serialize;
 use tokio::sync::{Mutex, RwLock};
@@ -36,9 +36,7 @@ pub struct GrindrClient {
     pub(super) session: RwLock<Option<Session>>,
     pub(super) refresh_lock: Mutex<()>,
     /// Rotation circuit-breaker state.
-    #[allow(dead_code)]
     pub(super) last_rotation: AtomicI64,
-    #[allow(dead_code)]
     pub(super) consecutive_rotations: AtomicU32,
 }
 
@@ -138,6 +136,47 @@ impl GrindrClient {
     pub async fn clear_session(&self) {
         *self.session.write().await = None;
     }
+
+    // ── Rotation circuit breaker ──────────────────────────────────────────
+
+    /// Max consecutive fingerprint rotations in the circuit breaker window.
+    const MAX_ROTATIONS_PER_WINDOW: u32 = 5;
+    /// Circuit breaker cooldown window in seconds.
+    const ROTATION_WINDOW_SECS: i64 = 600;
+
+    /// Increment the rotation counter, resetting it if the last rotation was
+    /// outside the circuit-breaker window (i.e. a fresh burst).
+    pub fn increment_rotation_counter(&self) {
+        let now = chrono::Utc::now().timestamp();
+        let last = self.last_rotation.swap(now, Ordering::Relaxed);
+        if now.saturating_sub(last) < Self::ROTATION_WINDOW_SECS {
+            self.consecutive_rotations.fetch_add(1, Ordering::Relaxed);
+        } else {
+            self.consecutive_rotations.store(1, Ordering::Relaxed);
+        }
+    }
+
+    pub fn reset_rotation_counter(&self) {
+        self.consecutive_rotations.store(0, Ordering::Relaxed);
+    }
+
+    /// Returns true when the circuit breaker trips: more than
+    /// `MAX_ROTATIONS_PER_WINDOW` rotations have occurred within the last
+    /// `ROTATION_WINDOW_SECS`. Callers should refuse further rotations until
+    /// the window elapses (checked on next call).
+    pub fn rotation_circuit_breaker_tripped(&self) -> bool {
+        let count = self.consecutive_rotations.load(Ordering::Relaxed);
+        if count < Self::MAX_ROTATIONS_PER_WINDOW {
+            return false;
+        }
+        let now = chrono::Utc::now().timestamp();
+        let last = self.last_rotation.load(Ordering::Relaxed);
+        if now.saturating_sub(last) >= Self::ROTATION_WINDOW_SECS {
+            self.consecutive_rotations.store(0, Ordering::Relaxed);
+            return false;
+        }
+        true
+    }
 }
 
 #[tauri::command]
@@ -146,31 +185,40 @@ pub async fn rotate_api_params(
 ) -> Result<RotateResult, AppError> {
     let client = state.client()?;
 
+    // Circuit breaker: refuse rapid manual rotations.
+    if client.rotation_circuit_breaker_tripped() {
+        return Err(AppError::Http(
+            "Fingerprint rotation rate-limited — wait before rotating again".to_owned(),
+        ));
+    }
+
     let device = DeviceInfo::default();
     if let Err(e) = DeviceStorage::save(&device) {
         eprintln!("[client] could not persist rotated device info: {e}");
     }
     let user_agent = build_user_agent(&device, "Unlimited");
-    let http = build_api_client()?;
-    let ws_http = build_ws_client()?;
 
+    // Reuse existing HTTP/WS clients to avoid expensive TLS handshake teardown.
+    // Only the device identity (and headers built from it) needs to change.
+    let guard = client.fingerprint.read().await;
     let new_fp = Arc::new(Fingerprint {
-        http,
-        ws_http,
+        http: guard.http.clone(),
+        ws_http: guard.ws_http.clone(),
         device,
         user_agent,
     });
+    drop(guard);
 
-    // Capture new values before moving into the lock.
+    // Capture new values before acquiring the write lock.
     let new_ua = new_fp.user_agent.clone();
     let new_device_info = super::headers::build_device_info_header(&new_fp.device);
 
+    client.increment_rotation_counter();
     {
         let mut guard = client.fingerprint.write().await;
         *guard = new_fp;
     }
 
-    // Return the *new* fingerprint values so the caller can verify the rotation.
     Ok(RotateResult {
         user_agent: new_ua,
         l_device_info: new_device_info,

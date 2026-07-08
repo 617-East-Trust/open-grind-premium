@@ -133,33 +133,40 @@ impl GrindrClient {
             // where these statuses are expected and not a detection signal).
             let is_auth_path = path.starts_with("/v8/sessions");
             if !is_auth_path && (status == 401 || status == 403) {
-                eprintln!("[premium] received HTTP {status} on {path} — rotating fingerprint and retrying once");
-                client.rotate_fingerprint().await;
-                // Rebuild request with fresh fingerprint.
-                let fp = client.fingerprint().await;
-                let headers = GrindrHeaders::build(
-                    &fp.device,
-                    &fp.user_agent,
-                    Some(&authorization),
-                    None,
-                )?;
-                let mut retry_request = apply_headers(
-                    fp.http.request(method, format!("{BASE_URL}{path}")),
-                    &headers.items,
-                );
-                if let Some(json_body) = body_bytes {
-                    retry_request = retry_request.json(&json_body);
-                }
-                match retry_request.send().await {
-                    Ok(retry_resp) => {
-                        let retry_status = retry_resp.status().as_u16();
-                        let retry_body = retry_resp.bytes().await.unwrap_or_default().to_vec();
-                        let (status, body) = maybe_rewrite_response(retry_status, &path, retry_body);
-                        return Ok(RawResponse { status, body });
+                if client.rotation_circuit_breaker_tripped() {
+                    eprintln!(
+                        "[premium] rotation circuit breaker tripped — not rotating on {status} from {path}"
+                    );
+                } else {
+                    eprintln!("[premium] received HTTP {status} on {path} — rotating fingerprint and retrying once");
+                    client.rotate_fingerprint().await;
+                    // Rebuild request with fresh fingerprint.
+                    let fp = client.fingerprint().await;
+                    let headers = GrindrHeaders::build(
+                        &fp.device,
+                        &fp.user_agent,
+                        Some(&authorization),
+                        None,
+                    )?;
+                    let mut retry_request = apply_headers(
+                        fp.http.request(method, format!("{BASE_URL}{path}")),
+                        &headers.items,
+                    );
+                    if let Some(json_body) = body_bytes {
+                        retry_request = retry_request.json(&json_body);
                     }
-                    Err(e) => {
-                        eprintln!("[premium] retry after fingerprint rotation also failed: {e}");
-                        // Fall through to the original response handling below.
+                    match retry_request.send().await {
+                        Ok(retry_resp) => {
+                            let retry_status = retry_resp.status().as_u16();
+                            let retry_body = retry_resp.bytes().await.unwrap_or_default().to_vec();
+                            let (status, body) = maybe_rewrite_response(retry_status, &path, retry_body);
+                            client.reset_rotation_counter();
+                            return Ok(RawResponse { status, body });
+                        }
+                        Err(e) => {
+                            eprintln!("[premium] retry after fingerprint rotation also failed: {e}");
+                            // Fall through to the original response handling below.
+                        }
                     }
                 }
             }
@@ -173,7 +180,8 @@ impl GrindrClient {
     /// Generate a fresh device fingerprint and replace the current one.
     /// Used internally by `request_raw` on 401/403 to evade detection, and
     /// mirrors the public `rotate_api_params` Tauri command.
-    #[allow(clippy::collapsible_if)]
+    /// Includes a 30-second cooldown via `device.last_rotated` to prevent
+    /// too-rapid rotation under sustained 403s.
     async fn rotate_fingerprint(&self) {
         // Rate limiting to avoid cycling fingerprints too quickly
         // If we rotated in the last 30 seconds, don't rotate again
@@ -194,26 +202,17 @@ impl GrindrClient {
             eprintln!("[premium] could not persist rotated device info: {e}");
         }
         let user_agent = build_user_agent(&device, "Unlimited");
-        let http = match build_api_client() {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("[premium] failed to build new HTTP client: {e}");
-                return;
-            }
-        };
-        let ws_http = match super::client::build_ws_client() {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("[premium] failed to build new WS client: {e}");
-                return;
-            }
-        };
+
+        let guard = self.fingerprint.read().await;
         let new_fp = Arc::new(Fingerprint {
-            http,
-            ws_http,
+            http: guard.http.clone(),
+            ws_http: guard.ws_http.clone(),
             device,
             user_agent,
         });
+        drop(guard);
+
+        self.increment_rotation_counter();
         *self.fingerprint.write().await = new_fp;
     }
 }

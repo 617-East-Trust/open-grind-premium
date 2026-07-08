@@ -45,8 +45,9 @@ pub fn run() {
         .manage(AppState {
             client: OnceLock::new(),
             ws_tx,
-            ws_rx: tokio::sync::Mutex::new(Some(ws_rx)),
+            ws_rx: Mutex::new(Some(ws_rx)),
             auth_notify,
+            ws_buffer: Mutex::new(Vec::new()),
             is_foreground: AtomicBool::new(true),
             ws_buffer: Mutex::new(Vec::new()),
         })
