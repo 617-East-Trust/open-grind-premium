@@ -49,7 +49,6 @@ pub fn run() {
             auth_notify,
             ws_buffer: Mutex::new(Vec::new()),
             is_foreground: AtomicBool::new(true),
-            ws_buffer: Mutex::new(Vec::new()),
         })
         .invoke_handler(tauri::generate_handler![
             api::auth::login,
