@@ -1,0 +1,13 @@
+{
+  "userRole": "FREE",
+  "subscriptionTier": "FREE",
+  "featureFlags": {
+    "someFlag": false,
+    "experimentalGrid": true,
+    "readReceipts": false
+  },
+  "serverTime": 1720000000,
+  "config": {
+    "cascadeEnabled": true
+  }
+}

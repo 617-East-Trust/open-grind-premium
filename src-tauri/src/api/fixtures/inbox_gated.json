@@ -1,0 +1,11 @@
+{
+  "messages": [
+    {
+      "conversationId": "c1",
+      "preview": "hey"
+    }
+  ],
+  "upgradeRequired": true,
+  "requiresUpgrade": true,
+  "nextPageKey": null
+}

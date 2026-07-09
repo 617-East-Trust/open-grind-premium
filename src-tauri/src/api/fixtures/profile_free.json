@@ -1,0 +1,12 @@
+{
+  "profileId": "12345678",
+  "displayName": "Fixture User",
+  "aboutMe": "hello",
+  "subscription": {
+    "premium": false,
+    "userRole": "FREE",
+    "subscriptionTier": "FREE",
+    "isFree": true
+  },
+  "medias": []
+}

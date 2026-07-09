@@ -120,9 +120,14 @@ pub fn get_rewrite_rules() -> &'static [RewriteRule] {
                     strip_upgrade_gates(json);
                     if let Some(obj) = json.as_object_mut() {
                         obj.insert("canViewAll".to_string(), json!(true));
-                        // Some clients gate on view count remaining
-                        obj.entry("remainingViews".to_string())
-                            .or_insert(json!(50));
+                        // Floor remaining views so free-tier 0 does not keep the paywall.
+                        let remaining = obj
+                            .get("remainingViews")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or(0);
+                        if remaining < 50 {
+                            obj.insert("remainingViews".to_string(), json!(50));
+                        }
                     }
                 },
             },

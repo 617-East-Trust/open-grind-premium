@@ -32,6 +32,9 @@ All API traffic flows through Open Grind's Rust backend (`GrindrClient`). The `m
 | **Auto-rotate fingerprint** | Any 401/403 | `rest.rs` / `client.rs` | Rotates device + UA with cooldown + circuit breaker |
 | **WS message buffer** | WebSocket | `ws.rs` | Queues outbound cmds while disconnected; flushes on reconnect |
 | **Fingerprint hash** | Tauri command | `headers.rs` / `client.rs` | `device_fingerprint_hash` for debug UI |
+| **Dynamic app version** | Startup + Play Store | `version.rs` | Discovers current Grindr app version for UA (24h cache) |
+| **Doze / lifecycle** | Foreground + health | `ws.rs` / `+layout.svelte` | Resume reconnect + background WS health |
+| **Structured logs** | Process start | `log_init.rs` | `tracing` + `RUST_LOG` |
 
 ## Response Rewriting Detail
 

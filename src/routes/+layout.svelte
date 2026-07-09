@@ -11,10 +11,28 @@
 		applyAndroidInsets,
 		applyBackGestureHandler,
 	} from "$lib/android-native-bridge";
+	import { invoke } from "@tauri-apps/api/core";
 
 	onMount(() => {
 		applyAndroidInsets();
 		applyBackGestureHandler();
+
+		// App lifecycle → Rust foreground flag (Doze / WS reconnect on resume).
+		const syncForeground = () => {
+			const foreground = document.visibilityState === "visible";
+			invoke("set_foreground", { foreground }).catch((e: unknown) => {
+				console.debug("[lifecycle] set_foreground failed", e);
+			});
+		};
+		syncForeground();
+		document.addEventListener("visibilitychange", syncForeground);
+		window.addEventListener("focus", syncForeground);
+		window.addEventListener("pageshow", syncForeground);
+		return () => {
+			document.removeEventListener("visibilitychange", syncForeground);
+			window.removeEventListener("focus", syncForeground);
+			window.removeEventListener("pageshow", syncForeground);
+		};
 	});
 
 	import RequestBlockedAlert from "$lib/api/request-blocked/RequestBlockedAlert.svelte";

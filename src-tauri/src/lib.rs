@@ -2,6 +2,7 @@
 #![allow(clippy::needless_return)]
 pub mod api;
 mod error;
+mod log_init;
 mod state;
 mod storage;
 
@@ -14,14 +15,27 @@ use crate::state::AppState;
 use api::client::GrindrClient;
 
 /// Called by the frontend when the app enters foreground or background.
-/// Gates push notifications so they only fire when the user isn't actively using the app.
+/// Gates push notifications and drives Doze-aware WS reconnect on resume.
 #[tauri::command]
 fn set_foreground(state: tauri::State<'_, AppState>, foreground: bool) {
-    state.is_foreground.store(foreground, std::sync::atomic::Ordering::Relaxed);
+    let was_foreground = state
+        .is_foreground
+        .swap(foreground, std::sync::atomic::Ordering::Relaxed);
+    tracing::debug!(foreground, was_foreground, "app foreground state changed");
+
+    // Leaving Doze / returning to the app: force a WS reconnect so half-open
+    // sockets from deep sleep are not left hanging until the next heartbeat miss.
+    if foreground && !was_foreground {
+        tracing::info!("app resumed — requesting WebSocket reconnect");
+        api::ws::request_ws_reconnect();
+        state.auth_notify.notify_waiters();
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    log_init::init();
+
     #[cfg(debug_assertions)]
     let devtools = tauri_plugin_devtools::init();
 
@@ -62,23 +76,45 @@ pub fn run() {
             api::rest::request,
             api::ws::ws_connect,
             api::ws::ws_send,
+            api::ws::ws_status,
             api::client::rotate_api_params,
             api::client::device_fingerprint_hash,
             api::rest::upload_image,
             api::rest::fetch_authed_bytes,
+            api::version::grindr_app_version,
             set_foreground,
         ])
         .setup(|app| {
-            #[cfg(all(target_os = "macos", not(feature = "keychain")))]
-            storage::init_file_store(app.path().app_data_dir()?);
+            let app_data = app
+                .path()
+                .app_data_dir()
+                .expect("failed to get app data dir");
 
-            storage::init_keyring(app.path().app_data_dir().expect("failed to get app data dir"));
+            // Native keyring with universal file fallback on every platform.
+            storage::init_keyring(app_data);
+
+            // Seed Grindr API version from keyring cache before building UA.
+            api::version::load_cached();
 
             if let Ok(client) = GrindrClient::new().map(Arc::new) {
                 let _ = app.state::<AppState>().client.set(client);
             }
 
-            #[cfg(all(target_os = "macos", not(feature = "keychain")))]
+            // Background: refresh Grindr app version and rebuild UA if it changed.
+            {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let info = api::version::refresh_if_stale().await;
+                    if let Ok(client) = handle.state::<AppState>().client() {
+                        client.apply_app_version(&info).await;
+                    }
+                });
+            }
+
+            // Periodic WS health while backgrounded (Doze-friendly soft keep-alive).
+            api::ws::spawn_background_health_task(app.handle().clone());
+
+            // Reload session after keyring is ready (covers file-store path too).
             {
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
@@ -91,6 +127,7 @@ pub fn run() {
                     }
                 });
             }
+
             api::ws::spawn_ws_task(app.handle().clone());
             Ok(())
         })

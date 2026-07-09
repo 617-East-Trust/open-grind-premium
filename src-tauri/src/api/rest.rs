@@ -102,12 +102,12 @@ impl GrindrClient {
 
             #[cfg(debug_assertions)]
             {
-                println!("=== OUTGOING REQUEST ===");
-                println!("Method+Path: {method} {path}");
+                tracing::debug!("=== OUTGOING REQUEST ===");
+                tracing::debug!("Method+Path: {method} {path}");
                 for (name, value) in &headers.items {
-                    println!("  {name}: {}", value.to_str().unwrap_or("<binary>"));
+                    tracing::debug!("  {name}: {}", value.to_str().unwrap_or("<binary>"));
                 }
-                println!("========================");
+                tracing::debug!("========================");
             }
 
             // Keep method by value for the first attempt; clone only if we retry.
@@ -134,11 +134,11 @@ impl GrindrClient {
             let is_auth_path = path.starts_with("/v8/sessions");
             if !is_auth_path && (status == 401 || status == 403) {
                 if client.rotation_circuit_breaker_tripped() {
-                    eprintln!(
+                    tracing::warn!(
                         "[premium] rotation circuit breaker tripped — not rotating on {status} from {path}"
                     );
                 } else {
-                    eprintln!("[premium] received HTTP {status} on {path} — rotating fingerprint and retrying once");
+                    tracing::warn!("[premium] received HTTP {status} on {path} — rotating fingerprint and retrying once");
                     client.rotate_fingerprint().await;
                     // Rebuild request with fresh fingerprint.
                     let fp = client.fingerprint().await;
@@ -164,7 +164,7 @@ impl GrindrClient {
                             return Ok(RawResponse { status, body });
                         }
                         Err(e) => {
-                            eprintln!("[premium] retry after fingerprint rotation also failed: {e}");
+                            tracing::warn!("[premium] retry after fingerprint rotation also failed: {e}");
                             // Fall through to the original response handling below.
                         }
                     }
@@ -193,13 +193,13 @@ impl GrindrClient {
                     .unwrap_or_default()
                     .as_secs() - last_rotated < 30
             {
-                eprintln!("[premium] skipping fingerprint rotation, last rotation was less than 30s ago");
+                tracing::warn!("[premium] skipping fingerprint rotation, last rotation was less than 30s ago");
                 return;
             }
         }
         let device = DeviceInfo::default();
         if let Err(e) = DeviceStorage::save(&device) {
-            eprintln!("[premium] could not persist rotated device info: {e}");
+            tracing::warn!("[premium] could not persist rotated device info: {e}");
         }
         let user_agent = build_user_agent(&device, "Unlimited");
 
@@ -265,7 +265,7 @@ fn maybe_rewrite_response(status: u16, path: &str, body: Vec<u8>) -> (u16, Vec<u
     match serde_json::to_vec(&json) {
         Ok(new_body) => (status, new_body),
         Err(e) => {
-            eprintln!(
+            tracing::warn!(
                 "[premium] failed to re-serialize rewritten response for {path}: {e} — returning original body"
             );
             (status, body)
@@ -774,5 +774,98 @@ mod tests {
         assert_eq!(status, 200);
         assert_eq!(json["status"], "ok");
         assert_eq!(json.get("userRole"), None, "bootstrap rewrite should not apply after ban bypass");
+    }
+
+    // ── fixture-based rewrites (realistic API shapes) ─────────────────────
+
+    fn load_fixture(name: &str) -> serde_json::Value {
+        let raw = match name {
+            "bootstrap_free" => include_str!("fixtures/bootstrap_free.json"),
+            "entitlements_free" => include_str!("fixtures/entitlements_free.json"),
+            "profile_free" => include_str!("fixtures/profile_free.json"),
+            "inbox_gated" => include_str!("fixtures/inbox_gated.json"),
+            "views_gated" => include_str!("fixtures/views_gated.json"),
+            "favorites_gated" => include_str!("fixtures/favorites_gated.json"),
+            "ban_response" => include_str!("fixtures/ban_response.json"),
+            "settings_minimal" => include_str!("fixtures/settings_minimal.json"),
+            other => panic!("unknown fixture: {other}"),
+        };
+        serde_json::from_str(raw).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn fixture_bootstrap_injects_premium_preserving_ab_flags() {
+        let input = load_fixture("bootstrap_free");
+        let (_, json) = call_rewrite(200, "/v3/bootstrap", input);
+        assert_eq!(json["userRole"], "UNLIMITED");
+        assert_eq!(json["subscriptionTier"], "UNLIMITED");
+        assert_eq!(json["featureFlags"]["readReceipts"], true);
+        assert_eq!(json["featureFlags"]["someFlag"], false);
+        assert_eq!(json["featureFlags"]["experimentalGrid"], true);
+        assert_eq!(json["config"]["cascadeEnabled"], true);
+    }
+
+    #[test]
+    fn fixture_entitlements_floors_counts() {
+        let input = load_fixture("entitlements_free");
+        let (_, json) = call_rewrite(200, "/v1/entitlements", input);
+        assert_eq!(json["rightNow"], 15);
+        assert_eq!(json["total"], 15);
+        // unrelated fields preserved
+        assert_eq!(json["boosts"], 0);
+    }
+
+    #[test]
+    fn fixture_profile_injects_subscription() {
+        let input = load_fixture("profile_free");
+        let (_, json) = call_rewrite(200, "/v3/me/profile", input);
+        assert_premium_subscription(&json);
+        assert_eq!(json["profileId"], "12345678");
+        assert_eq!(json["displayName"], "Fixture User");
+    }
+
+    #[test]
+    fn fixture_inbox_strips_gates() {
+        let input = load_fixture("inbox_gated");
+        let (_, json) = call_rewrite(200, "/v3/inbox", input);
+        assert!(json.get("upgradeRequired").is_none());
+        assert!(json.get("requiresUpgrade").is_none());
+        assert!(json["messages"].is_array());
+    }
+
+    #[test]
+    fn fixture_views_unlocks() {
+        let input = load_fixture("views_gated");
+        let (_, json) = call_rewrite(200, "/v1/views", input);
+        assert!(json.get("upgradeRequired").is_none());
+        assert!(json.get("truncatedProfiles").is_none());
+        assert_eq!(json["canViewAll"], true);
+        assert!(json.get("meta").and_then(|m| m.get("upgradeRequired")).is_none());
+    }
+
+    #[test]
+    fn fixture_favorites_raises_limits() {
+        let input = load_fixture("favorites_gated");
+        let (_, json) = call_rewrite(200, "/v1/favorites", input);
+        assert!(json.get("upgradeRequired").is_none());
+        assert_eq!(json["maxFavorites"], 9999);
+        assert_eq!(json["canAddMore"], true);
+    }
+
+    #[test]
+    fn fixture_ban_bypasses() {
+        let input = load_fixture("ban_response");
+        let (status, json) = call_rewrite(403, "/v3/bootstrap", input);
+        assert_eq!(status, 200);
+        assert_eq!(json["status"], "ok");
+    }
+
+    #[test]
+    fn fixture_settings_injects_defaults() {
+        let input = load_fixture("settings_minimal");
+        let (_, json) = call_rewrite(200, "/v3/me/settings", input);
+        assert_eq!(json["showMeInGrid"], true);
+        assert_eq!(json["showDistance"], true);
+        assert_eq!(json["incognito"], false);
     }
 }

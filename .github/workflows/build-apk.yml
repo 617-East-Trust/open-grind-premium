@@ -4,6 +4,14 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "src-tauri/**"
+      - "src/**"
+      - "package.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/**"
 
 jobs:
   check:
@@ -33,12 +41,16 @@ jobs:
         run: cargo clippy --lib --manifest-path src-tauri/Cargo.toml -- -D warnings
 
   build-android:
+    # Full APK only on release / manual dispatch — not every PR.
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     needs: check
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install system dependencies
         run: |
@@ -72,27 +84,45 @@ jobs:
           yes | sdkmanager --uninstall "ndk;29.0.14206865" || true
           echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
 
+      - name: Install Android build-tools (apksigner)
+        run: |
+          yes | sdkmanager "build-tools;35.0.0"
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> $GITHUB_PATH
+
       - name: Bump version from tag
         if: github.event_name == 'release'
+        run: bash ./scripts/bump-version.sh
+
+      - name: Require release signing secrets
+        if: github.event_name == 'release'
+        env:
+          KS_B64: ${{ secrets.OPEN_GRIND_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.OPEN_GRIND_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.OPEN_GRIND_KEYSTORE_ALIAS }}
         run: |
-          bash ./scripts/bump-version.sh
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ]; then
+            echo "Missing OPEN_GRIND_KEYSTORE_BASE64 or OPEN_GRIND_KEYSTORE_PASSWORD secrets" >&2
+            exit 1
+          fi
+          echo "Signing secrets present (alias=${KS_ALIAS:-open-grind})"
 
       - name: Decode keystore
         if: github.event_name == 'release'
+        env:
+          KS_B64: ${{ secrets.OPEN_GRIND_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.OPEN_GRIND_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.OPEN_GRIND_KEYSTORE_ALIAS }}
         run: |
-          echo "${{ secrets.OPEN_GRIND_KEYSTORE_BASE64 }}" | base64 -d > open-grind.keystore
+          echo "$KS_B64" | base64 -d > open-grind.keystore
           echo "OPEN_GRIND_KEYSTORE_PATH=$(pwd)/open-grind.keystore" >> $GITHUB_ENV
-          echo "OPEN_GRIND_KEYSTORE_PASSWORD=${{ secrets.OPEN_GRIND_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "OPEN_GRIND_KEYSTORE_ALIAS=${{ secrets.OPEN_GRIND_KEYSTORE_ALIAS }}" >> $GITHUB_ENV
+          echo "OPEN_GRIND_KEYSTORE_PASSWORD=$KS_PASS" >> $GITHUB_ENV
+          echo "OPEN_GRIND_KEYSTORE_ALIAS=${KS_ALIAS:-open-grind}" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Remove stale Android project
-        # The committed gen/android was generated with an old package name
-        # (org.opengrind) but tauri.conf.json now uses com.opengrind.premium.
-        # tauri android init refuses to run against the mismatched directory,
-        # so delete it and let init regenerate the project fresh.
+        # The committed gen/android may use an old package name; regenerate fresh.
         run: rm -rf src-tauri/gen/android
 
       - name: Initialize Android project
@@ -100,6 +130,9 @@ jobs:
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           NDK_HOME: ${{ env.NDK_HOME }}
+
+      - name: Apply Doze / network patches
+        run: bash ./scripts/android/apply-doze-patches.sh
 
       - name: Build frontend
         run: bun run build
@@ -110,10 +143,15 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           NDK_HOME: ${{ env.NDK_HOME }}
 
-      - name: Sign APK
-        if: env.OPEN_GRIND_KEYSTORE_PATH != ''
+      - name: Sign APK (release)
+        if: github.event_name == 'release'
         run: |
+          set -euo pipefail
           APK_PATH=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -type f | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "No APK found to sign" >&2
+            exit 1
+          fi
           echo "Signing $APK_PATH"
           apksigner sign \
             --ks "${OPEN_GRIND_KEYSTORE_PATH}" \
@@ -123,6 +161,8 @@ jobs:
             --v4-signing-enabled false \
             "$APK_PATH"
           apksigner verify --verbose "$APK_PATH"
+          # Optional: also produce a copy with -signed suffix for clarity
+          cp "$APK_PATH" "${APK_PATH%.apk}-signed.apk" || true
 
       - name: Upload APK to release
         if: github.event_name == 'release'

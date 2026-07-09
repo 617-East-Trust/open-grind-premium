@@ -1,17 +1,16 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};
+use std::sync::Arc;
 
 use serde::Serialize;
 use tokio::sync::{Mutex, RwLock};
-use wreq::{
-    Client,
-};
+use wreq::Client;
 
 use crate::error::AppError;
 use crate::state::AppState;
 
 use super::auth::Session;
 use super::headers::{build_user_agent, DeviceInfo, DeviceStorage};
+use super::version::AppVersionInfo;
 
 pub const BASE_URL: &str = "https://grindr.mobi";
 
@@ -78,12 +77,12 @@ impl GrindrClient {
             Ok(None) => {
                 let d = DeviceInfo::default();
                 if let Err(e) = DeviceStorage::save(&d) {
-                    eprintln!("[client] could not persist device info: {e}");
+                    tracing::warn!(error = %e, "could not persist device info");
                 }
                 d
             }
             Err(e) => {
-                eprintln!("[client] could not load device info, regenerating: {e}");
+                tracing::warn!(error = %e, "could not load device info, regenerating");
                 DeviceInfo::default()
             }
         };
@@ -92,13 +91,11 @@ impl GrindrClient {
         let http = build_api_client()?;
         let ws_http = build_ws_client()?;
 
-        #[cfg(all(target_os = "macos", not(feature = "keychain")))]
-        let session = None;
-        #[cfg(not(all(target_os = "macos", not(feature = "keychain"))))]
+        // Session load works with native keyring or universal file fallback.
         let session = match super::auth::AuthStorage::get_active_session() {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("[client] could not load active session: {e}");
+                tracing::warn!(error = %e, "could not load active session");
                 None
             }
         };
@@ -121,11 +118,32 @@ impl GrindrClient {
         Arc::clone(&*self.fingerprint.read().await)
     }
 
-    #[allow(dead_code)]
+    /// Rebuild the User-Agent after a dynamic Grindr app version refresh.
+    pub async fn apply_app_version(&self, info: &AppVersionInfo) {
+        let mut guard = self.fingerprint.write().await;
+        let new_ua = build_user_agent(&guard.device, "Unlimited");
+        if guard.user_agent == new_ua {
+            return;
+        }
+        tracing::info!(
+            version = %info.app_version,
+            build = %info.build_number,
+            user_agent = %new_ua,
+            "updated User-Agent after Grindr app version refresh"
+        );
+        let updated = Arc::new(Fingerprint {
+            http: guard.http.clone(),
+            ws_http: guard.ws_http.clone(),
+            device: guard.device.clone(),
+            user_agent: new_ua,
+        });
+        *guard = updated;
+    }
+
     pub async fn reload_session(&self) {
         match super::auth::AuthStorage::get_active_session() {
             Ok(s) => *self.session.write().await = s,
-            Err(e) => eprintln!("[client] reload_session: {e}"),
+            Err(e) => tracing::warn!(error = %e, "reload_session failed"),
         }
     }
 
@@ -203,7 +221,7 @@ pub async fn rotate_api_params(
 
     let device = DeviceInfo::default();
     if let Err(e) = DeviceStorage::save(&device) {
-        eprintln!("[client] could not persist rotated device info: {e}");
+        tracing::warn!(error = %e, "could not persist rotated device info");
     }
     let user_agent = build_user_agent(&device, "Unlimited");
 

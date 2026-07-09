@@ -33,6 +33,22 @@ export const methods = {
 		request: z.undefined(),
 		response: z.string(),
 	},
+	grindr_app_version: {
+		request: z.undefined(),
+		response: z.object({
+			app_version: z.string(),
+			build_number: z.string(),
+			fetched_at: z.number(),
+		}),
+	},
+	ws_status: {
+		request: z.undefined(),
+		response: z.object({
+			connected: z.boolean(),
+			foreground: z.boolean(),
+			buffered: z.number(),
+		}),
+	},
 	logout: {
 		request: z.undefined(),
 		response: z.undefined(),

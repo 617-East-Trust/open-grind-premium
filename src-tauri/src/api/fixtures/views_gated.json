@@ -1,0 +1,12 @@
+{
+  "profiles": [
+    { "profileId": "99", "displayName": "Viewer" }
+  ],
+  "upgradeRequired": true,
+  "truncatedProfiles": true,
+  "canViewAll": false,
+  "remainingViews": 0,
+  "meta": {
+    "upgradeRequired": true
+  }
+}

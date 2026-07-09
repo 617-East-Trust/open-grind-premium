@@ -25,6 +25,14 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 /// Max consecutive reconnect attempts before giving up.
 const MAX_RECONNECT_ATTEMPTS: u32 = 50;
 
+/// While backgrounded (Android Doze / desktop minimized), periodically nudge a
+/// reconnect so half-open sockets do not sit forever. Doze may still delay the
+/// work; resume path in `set_foreground` is the hard guarantee.
+const BACKGROUND_HEALTH_INTERVAL: Duration = Duration::from_secs(4 * 60);
+
+/// Shared connected flag for health checks / status command.
+static WS_CONNECTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// Outcome of `run_message_loop`.
 /// Distinguishes a clean shutdown (command channel closed) from a
 /// transient disconnect so the outer loop knows whether to reconnect or exit.
@@ -75,6 +83,41 @@ pub fn spawn_ws_task(app: AppHandle) {
     });
 }
 
+/// Soft keep-alive while the app is backgrounded. Complements heartbeat and
+/// resume-driven reconnect for Android Doze resilience.
+pub fn spawn_background_health_task(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let mut ticker = interval(BACKGROUND_HEALTH_INTERVAL);
+        ticker.tick().await; // skip immediate fire
+        loop {
+            ticker.tick().await;
+            let state = app.state::<AppState>();
+            let foreground = state.is_foreground.load(Ordering::Relaxed);
+            let connected = WS_CONNECTED.load(Ordering::Relaxed);
+            if foreground {
+                continue;
+            }
+            // Only act when we believe we should be online (have a session).
+            let has_session = match state.client() {
+                Ok(c) => c.session.read().await.is_some(),
+                Err(_) => false,
+            };
+            if !has_session {
+                continue;
+            }
+            if !connected {
+                tracing::info!(
+                    "background health: WS not connected while backgrounded — requesting reconnect"
+                );
+                request_ws_reconnect();
+                state.auth_notify.notify_waiters();
+            } else {
+                tracing::debug!("background health: WS still marked connected");
+            }
+        }
+    });
+}
+
 async fn run_ws_loop(app: AppHandle) {
     let state = app.state::<AppState>();
     let mut backoff = Duration::from_secs(1);
@@ -87,7 +130,7 @@ async fn run_ws_loop(app: AppHandle) {
     loop {
         // Circuit-breaker: cap consecutive reconnects.
         if reconnect_count >= MAX_RECONNECT_ATTEMPTS {
-            eprintln!(
+            tracing::warn!(
                 "[ws] circuit-breaker tripped after {MAX_RECONNECT_ATTEMPTS} consecutive reconnect attempts — giving up"
             );
             break;
@@ -105,7 +148,7 @@ async fn run_ws_loop(app: AppHandle) {
                 outer_reconnect.notify_one();
             }
             WsOutcome::Disconnected(e @ (AppError::NotInitialized | AppError::Auth(_))) => {
-                eprintln!("[ws] auth error, waiting for login: {e}");
+                tracing::warn!("[ws] auth error, waiting for login: {e}");
                 app.emit("ws:disconnected", ()).ok();
                 tokio::select! {
                     _ = state.auth_notify.notified() => {}
@@ -116,7 +159,7 @@ async fn run_ws_loop(app: AppHandle) {
                 reconnect_count = 0;
             }
             WsOutcome::Disconnected(e) => {
-                eprintln!("[ws] error: {e}");
+                tracing::warn!("[ws] error: {e}");
                 app.emit("ws:disconnected", ()).ok();
                 sleep(backoff).await;
                 backoff = (backoff * 2).min(Duration::from_secs(30));
@@ -193,6 +236,7 @@ async fn connect_and_run(
         Err(e) => return WsOutcome::Disconnected(AppError::Http(format!("WS upgrade failed: {e}"))),
     };
 
+    WS_CONNECTED.store(true, Ordering::Relaxed);
     app.emit("ws:connected", ()).ok();
 
     // Flush buffered outbound messages into the WS send channel.
@@ -206,7 +250,7 @@ async fn connect_and_run(
         };
 
         if !pending.is_empty() {
-            eprintln!("[ws] flushing {} buffered messages", pending.len());
+            tracing::warn!("[ws] flushing {} buffered messages", pending.len());
             let _ = app.emit(
                 "ws:queue-draining",
                 serde_json::json!({ "count": pending.len() }),
@@ -226,7 +270,7 @@ async fn connect_and_run(
                 Ok(()) => sent += 1,
                 Err(tokio::sync::mpsc::error::TrySendError::Full(cmd))
                 | Err(tokio::sync::mpsc::error::TrySendError::Closed(cmd)) => {
-                    eprintln!("[ws] flush: channel full/closed, re-queueing remainder");
+                    tracing::warn!("[ws] flush: channel full/closed, re-queueing remainder");
                     overflow.push(cmd);
                 }
             }
@@ -238,7 +282,7 @@ async fn connect_and_run(
             for cmd in overflow {
                 if buf.len() >= WsCommand::BUFFER_CAPACITY {
                     let dropped = buf.remove(0);
-                    eprintln!(
+                    tracing::warn!(
                         "[ws] flush: buffer full — dropped oldest command: {}",
                         dropped.r#type
                     );
@@ -277,8 +321,11 @@ async fn connect_and_run(
         outer_reconn.notify_waiters();
     });
 
-    let outcome = run_message_loop(&mut ws, &mut cmd_rx, &session_id, &our_profile_id, &reconnect, app).await;
+    let outcome =
+        run_message_loop(&mut ws, &mut cmd_rx, &session_id, &our_profile_id, &reconnect, app)
+            .await;
 
+    WS_CONNECTED.store(false, Ordering::Relaxed);
     *state.ws_rx.lock().await = Some(cmd_rx);
     outcome
 }
@@ -365,7 +412,7 @@ async fn run_message_loop(
             },
 
             _ = reconnect.notified() => {
-                eprintln!("[ws] reconnect requested, closing current connection");
+                tracing::warn!("[ws] reconnect requested, closing current connection");
                 return WsOutcome::Reconnect;
             }
 
@@ -453,6 +500,24 @@ pub async fn ws_connect(state: tauri::State<'_, AppState>) -> Result<(), AppErro
     Ok(())
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WsStatus {
+    pub connected: bool,
+    pub foreground: bool,
+    pub buffered: usize,
+}
+
+#[tauri::command]
+pub async fn ws_status(state: tauri::State<'_, AppState>) -> Result<WsStatus, AppError> {
+    let buffered = state.ws_buffer.lock().await.len();
+    Ok(WsStatus {
+        connected: WS_CONNECTED.load(Ordering::Relaxed),
+        foreground: state.is_foreground.load(Ordering::Relaxed),
+        buffered,
+    })
+}
+
 #[tauri::command]
 pub async fn ws_send(
     state: tauri::State<'_, AppState>,
@@ -474,7 +539,7 @@ pub async fn ws_send(
             buf.push(command);
 
             // Emit event to frontend for UI feedback (e.g., show retry button)
-            eprintln!("[ws] buffer full — dropped oldest command: {}", dropped.r#type);
+            tracing::warn!("[ws] buffer full — dropped oldest command: {}", dropped.r#type);
         }
     }
     Ok(())

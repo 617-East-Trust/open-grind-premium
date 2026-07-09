@@ -5,10 +5,7 @@ use wreq::header::{HeaderName, HeaderValue};
 
 use crate::error::AppError;
 
-use super::version::{FALLBACK_APP_VERSION, FALLBACK_BUILD_NUMBER};
-
-const APP_VERSION: &str = FALLBACK_APP_VERSION;
-const BUILD_NUMBER: &str = FALLBACK_BUILD_NUMBER;
+use super::version;
 
 const MAX_ANDROID_VERSION: u8 = 16;
 
@@ -801,8 +798,10 @@ impl DeviceStorage {
 }
 
 pub fn build_user_agent(device: &DeviceInfo, subscription_tier: &str) -> String {
+    let app_version = version::app_version();
+    let build_number = version::build_number();
     format!(
-        "grindr3/{APP_VERSION};{BUILD_NUMBER};{subscription_tier};{};{};{}",
+        "grindr3/{app_version};{build_number};{subscription_tier};{};{};{}",
         device.os, device.device_model, device.manufacturer
     )
 }
@@ -931,10 +930,13 @@ mod tests {
     fn user_agent_format() {
         let device = test_device();
         let ua = build_user_agent(&device, "Free");
-        assert_eq!(
-            ua,
-            format!("grindr3/{APP_VERSION};{BUILD_NUMBER};Free;Android 14;Pixel 8;Google")
+        let expected = format!(
+            "grindr3/{};{};Free;Android 14;Pixel 8;Google",
+            version::app_version(),
+            version::build_number()
         );
+        assert_eq!(ua, expected);
+        assert!(ua.starts_with("grindr3/"));
     }
 
     #[test]
