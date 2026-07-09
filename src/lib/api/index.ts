@@ -29,6 +29,10 @@ export const methods = {
 			"l-device-info": z.string(),
 		}),
 	},
+	device_fingerprint_hash: {
+		request: z.undefined(),
+		response: z.string(),
+	},
 	logout: {
 		request: z.undefined(),
 		response: z.undefined(),
@@ -100,6 +104,29 @@ export async function callMethod<T extends keyof typeof methods>(
 		});
 	}
 	return parsed.data as z.infer<(typeof methods)[T]["response"]>;
+}
+
+/** Detect Cloudflare / WAF HTML block pages more robustly than exact title match. */
+export function isCloudflareBlock(status: number, text: string): boolean {
+	if (!text) return false;
+	const lower = text.toLowerCase();
+	const looksLikeHtml =
+		lower.includes("<html") || lower.includes("<!doctype html") || lower.includes("<title");
+	if (!looksLikeHtml) return false;
+
+	const cloudflareSignals =
+		lower.includes("cloudflare") ||
+		lower.includes("cf-ray") ||
+		lower.includes("attention required") ||
+		lower.includes("sorry, you have been blocked") ||
+		lower.includes("checking your browser") ||
+		lower.includes("just a moment") ||
+		lower.includes("cf-browser-verification") ||
+		lower.includes("challenge-platform");
+
+	// 403 is the common hard-block; 503/429/1020-style pages also appear.
+	const blockishStatus = status === 403 || status === 503 || status === 429 || status === 520;
+	return cloudflareSignals && (blockishStatus || lower.includes("you have been blocked"));
 }
 
 export function asAppError(error: unknown) {
@@ -178,11 +205,9 @@ export async function fetchRest(
 			json() {
 				const text = new TextDecoder().decode(responseBody);
 				const responseInfo = { status, body: text };
-				if (
-					status === 403 &&
-					text.includes("<title>Attention Required! | Cloudflare</title>") &&
-					text.includes("Sorry, you have been blocked")
-				) {
+				// Broader Cloudflare / WAF block heuristics — title strings change;
+				// also catch HTML challenge pages on non-403 statuses.
+				if (isCloudflareBlock(status, text)) {
 					if (!requestBlockedAlertState.disable) {
 						requestBlockedAlertState.open = true;
 					}

@@ -179,6 +179,15 @@ impl GrindrClient {
     }
 }
 
+/// Debug helper: short fingerprint hash of the current device identity.
+#[tauri::command]
+pub async fn device_fingerprint_hash(
+    state: tauri::State<'_, AppState>,
+) -> Result<String, AppError> {
+    let fp = state.client()?.fingerprint().await;
+    Ok(fp.device.fingerprint_hash())
+}
+
 #[tauri::command]
 pub async fn rotate_api_params(
     state: tauri::State<'_, AppState>,

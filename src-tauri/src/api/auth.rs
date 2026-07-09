@@ -353,10 +353,10 @@ impl GrindrClient {
     }
 
     pub async fn authorization_header(&self) -> Option<String> {
-        // P2 #7: Hold the refresh_lock across the entire check-refresh cycle
-        // to prevent two concurrent callers from both racing into refresh_token().
-        let _guard = self.refresh_lock.lock().await;
-
+        // Do NOT hold refresh_lock across a call to refresh_token() —
+        // refresh_token already acquires that mutex, and tokio::Mutex is
+        // not re-entrant (would deadlock). Concurrent refresh races are
+        // handled inside refresh_token via double-checked locking.
         let expires_at = self
             .session
             .read()

@@ -81,7 +81,6 @@ impl GrindrClient {
         body: Option<Vec<u8>>,
         check_refresh: bool,
     ) -> BoxFuture<'static, Result<RawResponse, AppError>> {
-        let method = method.clone();
         async move {
             if check_refresh && path != "/v8/sessions" {
                 let _ = client.refresh_token().await;
@@ -111,11 +110,11 @@ impl GrindrClient {
                 println!("========================");
             }
 
-            let request = apply_headers(
+            // Keep method by value for the first attempt; clone only if we retry.
+            let mut request = apply_headers(
                 fp.http.request(method.clone(), format!("{BASE_URL}{path}")),
                 &headers.items,
             );
-            let mut request = request;
 
             let body_bytes = if let Some(ref b) = body {
                 let json_body: serde_json::Value = rmp_serde::from_slice(b)
@@ -225,26 +224,53 @@ fn maybe_rewrite_response(status: u16, path: &str, body: Vec<u8>) -> (u16, Vec<u
         return (status, body);
     };
 
-    // Ban bypass (highest priority)
+    // Ban / restriction bypass (highest priority).
+    // Codes 40300–40310 cover ban, suspend, restrict, and related account gates
+    // observed in Grindr API responses (roadmap #14 expansion).
     let is_banned = json
         .get("status")
         .and_then(|v| v.as_str())
-        .map(|s| matches!(s.to_lowercase().as_str(), "banned" | "suspended" | "restricted"))
+        .map(|s| {
+            matches!(
+                s.to_lowercase().as_str(),
+                "banned" | "suspended" | "restricted" | "disabled" | "shadowbanned"
+            )
+        })
         .unwrap_or(false)
         || json
             .get("code")
             .and_then(|v| v.as_i64())
-            .map(|c| matches!(c, 40300..=40303))
+            .map(|c| (40300..=40310).contains(&c))
+            .unwrap_or(false)
+        || json
+            .get("error")
+            .and_then(|v| v.as_str())
+            .map(|s| {
+                matches!(
+                    s.to_lowercase().as_str(),
+                    "banned" | "suspended" | "restricted"
+                )
+            })
             .unwrap_or(false);
 
     if is_banned {
-        return (200, serde_json::json!({"status": "ok"}).to_string().into_bytes());
+        return (
+            200,
+            serde_json::json!({"status": "ok"}).to_string().into_bytes(),
+        );
     }
 
     apply_rewrites(path, &mut json);
 
-    let new_body = serde_json::to_vec(&json).unwrap_or(body);
-    (status, new_body)
+    match serde_json::to_vec(&json) {
+        Ok(new_body) => (status, new_body),
+        Err(e) => {
+            eprintln!(
+                "[premium] failed to re-serialize rewritten response for {path}: {e} — returning original body"
+            );
+            (status, body)
+        }
+    }
 }
 
 fn parse_api_error(bytes: &[u8], http_status: i32) -> AppError {
@@ -349,7 +375,7 @@ pub async fn upload_image(
         .http
         .post(format!("{BASE_URL}/v5/chat/media/upload?takenOnGrindr=false"))
         .header("Authorization", &authorization)
-        // .header("L-Grindr-Roles", grindr_roles_header_value())
+        // L-Grindr-Roles intentionally omitted — see headers::grindr_roles_header_value
         .header("Content-Type", &mime_type)
         .body(bytes)
         .send()
@@ -577,12 +603,28 @@ mod tests {
 
     #[test]
     fn test_ban_bypass_multiple_error_codes() {
-        for code in [40300, 40301, 40302, 40303] {
+        for code in [40300, 40301, 40302, 40303, 40304, 40305, 40310] {
             let input = serde_json::json!({"code": code});
             let (status, json) = call_rewrite(403, "/v3/bootstrap", input);
             assert_eq!(status, 200, "code {code} should trigger ban bypass");
             assert_eq!(json["status"], "ok");
         }
+    }
+
+    #[test]
+    fn test_ban_bypass_error_field() {
+        let input = serde_json::json!({"error": "banned"});
+        let (status, json) = call_rewrite(403, "/v3/bootstrap", input);
+        assert_eq!(status, 200);
+        assert_eq!(json["status"], "ok");
+    }
+
+    #[test]
+    fn test_ban_bypass_shadowbanned_status() {
+        let input = serde_json::json!({"status": "shadowbanned"});
+        let (status, json) = call_rewrite(403, "/v3/me/profile", input);
+        assert_eq!(status, 200);
+        assert_eq!(json["status"], "ok");
     }
 
     #[test]
@@ -634,37 +676,53 @@ mod tests {
 
     #[test]
     fn test_views_removes_upgrade_required() {
-        let input = serde_json::json!({"profiles": [], "upgradeRequired": true});
+        let input = serde_json::json!({"profiles": [], "upgradeRequired": true, "truncatedProfiles": true});
         let (_, json) = call_rewrite(200, "/v1/views", input);
         assert!(json.get("upgradeRequired").is_none());
+        assert!(json.get("truncatedProfiles").is_none());
+        assert_eq!(json["canViewAll"], true);
     }
 
     #[test]
-    fn test_prefs_injects_show_distance() {
+    fn test_prefs_injects_premium_visibility() {
         let input = serde_json::json!({});
         let (_, json) = call_rewrite(200, "/v3/me/prefs", input);
         assert_eq!(json["showDistance"], true);
+        assert_eq!(json["showOnlineStatus"], true);
+        assert_eq!(json["showLastSeen"], true);
     }
 
     #[test]
     fn test_favorites_removes_upgrade_required() {
-        let input = serde_json::json!({"profiles": [], "upgradeRequired": true});
+        let input = serde_json::json!({"profiles": [], "upgradeRequired": true, "maxFavorites": 5});
         let (_, json) = call_rewrite(200, "/v1/favorites", input);
         assert!(json.get("upgradeRequired").is_none());
+        assert_eq!(json["maxFavorites"], 9999);
+        assert_eq!(json["canAddMore"], true);
     }
 
     #[test]
     fn test_explore_removes_upgrade_required() {
-        let input = serde_json::json!({"profiles": [], "upgradeRequired": true});
+        let input = serde_json::json!({"profiles": [], "upgradeRequired": true, "pageSize": 10});
         let (_, json) = call_rewrite(200, "/v3/explore", input);
         assert!(json.get("upgradeRequired").is_none());
+        assert_eq!(json["pageSize"], 50);
     }
 
     #[test]
     fn test_album_removes_upgrade_required() {
-        let input = serde_json::json!({"photos": [], "upgradeRequired": true});
+        let input = serde_json::json!({"photos": [], "upgradeRequired": true, "requiresUpgrade": true});
         let (_, json) = call_rewrite(200, "/v4/album", input);
         assert!(json.get("upgradeRequired").is_none());
+        assert!(json.get("requiresUpgrade").is_none());
+    }
+
+    #[test]
+    fn test_entitlements_does_not_downgrade_higher_values() {
+        let input = serde_json::json!({"rightNow": 40, "total": 100});
+        let (_, json) = call_rewrite(200, "/v1/entitlements", input);
+        assert_eq!(json["rightNow"], 40);
+        assert_eq!(json["total"], 100);
     }
 
     // ── passthrough (non-matching paths, non-JSON responses) ───────────────
@@ -677,6 +735,18 @@ mod tests {
         assert_eq!(status, 200);
         let json: serde_json::Value = serde_json::from_slice(&new_body).unwrap();
         assert_eq!(json, input);
+    }
+
+    #[test]
+    fn test_media_path_not_rewritten_as_me() {
+        // Regression: naive starts_with("/v1/me") matched /v1/media
+        let input = serde_json::json!({"url": "https://example.com/img"});
+        let body = serde_json::to_vec(&input).unwrap();
+        let (status, new_body) = maybe_rewrite_response(200, "/v1/media/upload", body);
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_slice(&new_body).unwrap();
+        assert_eq!(json, input);
+        assert!(json.get("subscription").is_none());
     }
 
     #[test]

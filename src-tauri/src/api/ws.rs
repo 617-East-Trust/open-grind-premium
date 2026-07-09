@@ -156,11 +156,14 @@ async fn connect_and_run(
         .unwrap_or_default();
 
     let fp = client.fingerprint().await;
+    // Do not send L-Grindr-Roles. The official free client never claims
+    // PREMIUM/UNLIMITED here; premium is injected client-side via response
+    // rewriting only. Sending mismatched roles is a high-confidence ban signal.
     let headers = match GrindrHeaders::build(
         &fp.device,
         &fp.user_agent,
         Some(&authorization),
-        Some("PREMIUM,UNLIMITED"),
+        None,
     ) {
         Ok(h) => h,
         Err(e) => return WsOutcome::Disconnected(e),
@@ -192,45 +195,64 @@ async fn connect_and_run(
 
     app.emit("ws:connected", ()).ok();
 
-    // P1 #6: Flush any buffered outbound messages into the WS send channel.
-    // === IMPROVED FLUSH LOGIC ===
+    // Flush buffered outbound messages into the WS send channel.
+    // Take ownership of the buffer first so we never re-lock `ws_buffer`
+    // while already holding it (tokio Mutex is not re-entrant).
     {
         let state = app.state::<AppState>();
-        let mut buf = state.ws_buffer.lock().await;
+        let pending: Vec<WsCommand> = {
+            let mut buf = state.ws_buffer.lock().await;
+            std::mem::take(&mut *buf)
+        };
 
-        if !buf.is_empty() {
-            eprintln!("[ws] flushing {} buffered messages", buf.len());
-            let _ = app.emit("ws:queue-draining", serde_json::json!({ "count": buf.len() }));
+        if !pending.is_empty() {
+            eprintln!("[ws] flushing {} buffered messages", pending.len());
+            let _ = app.emit(
+                "ws:queue-draining",
+                serde_json::json!({ "count": pending.len() }),
+            );
         }
 
         let tx = &state.ws_tx;
-        let mut dropped = 0usize;
-        let mut requeued = 0usize;
+        let mut overflow: Vec<WsCommand> = Vec::new();
+        let mut sent = 0usize;
 
-        for cmd in buf.drain(..) {
-            // Clone before try_send so we can re-queue if channel is full
-            let cmd_clone = cmd.clone();
-            if tx.try_send(cmd).is_err() {
-                dropped += 1;
-                eprintln!("[ws] flush: channel full, attempting re-queue");
-
-                let mut buf = state.ws_buffer.lock().await;
-                if buf.len() < WsCommand::BUFFER_CAPACITY {
-                    buf.push(cmd_clone);
-                    requeued += 1;
-                } else {
-                    eprintln!("[ws] flush: buffer also full — dropping command");
+        for cmd in pending {
+            if !overflow.is_empty() {
+                overflow.push(cmd);
+                continue;
+            }
+            match tx.try_send(cmd) {
+                Ok(()) => sent += 1,
+                Err(tokio::sync::mpsc::error::TrySendError::Full(cmd))
+                | Err(tokio::sync::mpsc::error::TrySendError::Closed(cmd)) => {
+                    eprintln!("[ws] flush: channel full/closed, re-queueing remainder");
+                    overflow.push(cmd);
                 }
-                break;
             }
         }
 
-        if dropped > 0 {
-            let _ = app.emit("ws:queue-dropped", serde_json::json!({
-                "reason": "flush_channel_full",
-                "dropped": dropped,
-                "requeued": requeued
-            }));
+        if !overflow.is_empty() {
+            let requeued = overflow.len();
+            let mut buf = state.ws_buffer.lock().await;
+            for cmd in overflow {
+                if buf.len() >= WsCommand::BUFFER_CAPACITY {
+                    let dropped = buf.remove(0);
+                    eprintln!(
+                        "[ws] flush: buffer full — dropped oldest command: {}",
+                        dropped.r#type
+                    );
+                }
+                buf.push(cmd);
+            }
+            let _ = app.emit(
+                "ws:queue-dropped",
+                serde_json::json!({
+                    "reason": "flush_channel_full",
+                    "sent": sent,
+                    "requeued": requeued
+                }),
+            );
         }
     }
 

@@ -1,7 +1,32 @@
 import { describe, expect, it, vi } from "vitest";
 import z from "zod";
 
-import { asAppError, parseApiResponse } from "$lib/api";
+import { asAppError, isCloudflareBlock, parseApiResponse } from "$lib/api";
+
+describe("isCloudflareBlock", () => {
+	it("detects classic Cloudflare 403 HTML block page", () => {
+		const html = `<!DOCTYPE html><html><title>Attention Required! | Cloudflare</title>
+			<body>Sorry, you have been blocked</body></html>`;
+		expect(isCloudflareBlock(403, html)).toBe(true);
+	});
+
+	it("detects challenge / just a moment pages on 503", () => {
+		const html = `<html><title>Just a moment...</title><div>cloudflare challenge-platform</div></html>`;
+		expect(isCloudflareBlock(503, html)).toBe(true);
+	});
+
+	it("does not flag valid JSON API errors", () => {
+		expect(isCloudflareBlock(403, `{"code":40301,"message":"forbidden"}`)).toBe(
+			false,
+		);
+	});
+
+	it("does not flag unrelated HTML", () => {
+		expect(isCloudflareBlock(200, `<html><title>Grindr</title></html>`)).toBe(
+			false,
+		);
+	});
+});
 
 describe("asAppError", () => {
 	it("formats string messages from structured app errors", () => {

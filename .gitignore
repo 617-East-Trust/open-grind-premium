@@ -23,6 +23,7 @@ keystore.properties
 build-output/
 
 # Rust
+/target/
 src-tauri/target/
 
 .local

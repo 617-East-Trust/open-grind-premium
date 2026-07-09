@@ -63,6 +63,7 @@ pub fn run() {
             api::ws::ws_connect,
             api::ws::ws_send,
             api::client::rotate_api_params,
+            api::client::device_fingerprint_hash,
             api::rest::upload_image,
             api::rest::fetch_authed_bytes,
             set_foreground,

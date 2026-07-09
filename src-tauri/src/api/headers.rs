@@ -756,6 +756,23 @@ impl Default for DeviceInfo {
     }
 }
 
+impl DeviceInfo {
+    /// Short 8-char hex hash of device identity for settings/debug UI.
+    /// Changes whenever device id, model, or timezone rotates.
+    pub fn fingerprint_hash(&self) -> String {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        self.device_id.hash(&mut hasher);
+        self.device_model.hash(&mut hasher);
+        self.manufacturer.hash(&mut hasher);
+        self.timezone.hash(&mut hasher);
+        self.advertising_id.hash(&mut hasher);
+        format!("{:08x}", (hasher.finish() & 0xffff_ffff) as u32)
+    }
+}
+
 pub struct DeviceStorage;
 
 impl DeviceStorage {
@@ -879,11 +896,14 @@ fn invalid_header<E: std::fmt::Display>(e: E) -> AppError {
     AppError::Http(format!("Invalid header value: {e}"))
 }
 
-/// Returns the L-Grindr-Roles header value for upload/fetch requests
-/// that are not routed through the normal `request_raw` pipeline.
+/// Historical helper for `L-Grindr-Roles`. Intentionally unused.
+///
+/// Sending `PREMIUM`/`UNLIMITED` roles for free-tier accounts is a
+/// high-confidence server-side detection signal. Premium is injected only via
+/// response rewriting (`rewrite.rs` / `maybe_rewrite_response`).
 #[allow(dead_code)]
-pub fn grindr_roles_header_value() -> &'static str {
-    "[PREMIUM,UNLIMITED]"
+pub fn grindr_roles_header_value() -> Option<&'static str> {
+    None
 }
 
 #[cfg(test)]
@@ -964,5 +984,45 @@ mod tests {
                 "accept-encoding",
             ]
         );
+    }
+
+    #[test]
+    fn roles_header_omitted_when_none() {
+        let device = test_device();
+        let headers =
+            GrindrHeaders::build(&device, "ua/1.0", Some("Grindr3 sid"), None).unwrap();
+        let names: Vec<&str> = headers.items.iter().map(|(n, _)| n.as_str()).collect();
+        assert!(!names.contains(&"l-grindr-roles"));
+        assert!(grindr_roles_header_value().is_none());
+    }
+
+    #[test]
+    fn fingerprint_hash_is_stable_for_same_device() {
+        let device = test_device();
+        let a = device.fingerprint_hash();
+        let b = device.fingerprint_hash();
+        assert_eq!(a, b);
+        assert_eq!(a.len(), 8);
+    }
+
+    #[test]
+    fn fingerprint_hash_changes_with_identity() {
+        let mut device = test_device();
+        let original = device.fingerprint_hash();
+        device.device_id = "other-device".to_owned();
+        assert_ne!(original, device.fingerprint_hash());
+    }
+
+    #[test]
+    fn safe_timezones_have_no_duplicates() {
+        let mut seen = std::collections::HashSet::new();
+        for tz in SAFE_TIMEZONES {
+            assert!(seen.insert(*tz), "duplicate timezone: {tz}");
+        }
+    }
+
+    #[test]
+    fn device_profiles_non_empty() {
+        assert!(DEVICE_PROFILES.len() >= 50, "expected expanded device pool");
     }
 }
