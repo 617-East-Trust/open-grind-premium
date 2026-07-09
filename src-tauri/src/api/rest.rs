@@ -10,7 +10,7 @@ use std::sync::Arc;
 use crate::error::AppError;
 use crate::state::AppState;
 
-use super::client::{build_api_client, Fingerprint, GrindrClient};
+use super::client::{Fingerprint, GrindrClient};
 use super::client::BASE_URL;
 use super::headers::{build_user_agent, DeviceInfo, DeviceStorage, GrindrHeaders};
 use crate::api::rewrite::apply_rewrites;

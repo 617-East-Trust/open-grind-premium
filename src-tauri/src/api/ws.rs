@@ -210,7 +210,7 @@ async fn connect_and_run(
         for cmd in buf.drain(..) {
             // Clone before try_send so we can re-queue if channel is full
             let cmd_clone = cmd.clone();
-            if let Err(_) = tx.try_send(cmd) {
+            if tx.try_send(cmd).is_err() {
                 dropped += 1;
                 eprintln!("[ws] flush: channel full, attempting re-queue");
 
