@@ -41,6 +41,12 @@ android {
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
 	signingConfigs {
+		create("debug") {
+			storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+			storePassword = "android"
+			keyAlias = "androiddebugkey"
+			keyPassword = "android"
+		}
 		if (hasKeystore) {
 			create("release") {
 				val keystoreProperties = Properties()
@@ -65,9 +71,7 @@ android {
                 jniLibs.keepDebugSymbols.add("*/x86/*.so")
                 jniLibs.keepDebugSymbols.add("*/x86_64/*.so")
             }
-			if (hasKeystore) {
-				signingConfig = signingConfigs.getByName("release")
-			}
+			signingConfig = signingConfigs.getByName("debug")
         }
         getByName("release") {
             isMinifyEnabled = true
@@ -78,6 +82,8 @@ android {
             )
 			if (hasKeystore) {
 				signingConfig = signingConfigs.getByName("release")
+			} else {
+				signingConfig = signingConfigs.getByName("debug")
 			}
         }
     }
