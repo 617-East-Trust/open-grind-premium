@@ -1,1 +1,0 @@
-import{a as e,f as r}from"../chunks/DcQL3t2F.js";import"../chunks/DxzbO5f5.js";import{C as s}from"../chunks/Ba5mDYEk.js";var n=r('<span class="text-muted text-xl text-center">Select a conversation to start chatting</span>');function f(t){s(t,{class:"flex m-auto p-6",children:(a,p)=>{var o=n();e(a,o)},$$slots:{default:!0}})}export{f as component};

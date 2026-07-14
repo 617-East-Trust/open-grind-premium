@@ -1,1 +1,0 @@
-import{F as v,H as o,I as y,E as f,S as l,V as m,Q as p,P as i,ao as T,J as A}from"./BwbreigZ.js";import{B as E}from"./DcQL3t2F.js";function F(d,_,e){var s;o&&(s=A,y());var r=new E(d);v(()=>{var a=_()??null;if(o){var h=l(s),c=h===T,u=a!==null;if(c!==u){var t=m();p(t),r.anchor=t,i(!1),r.ensure(a,a&&(n=>e(n,a))),i(!0);return}}r.ensure(a,a&&(n=>e(n,a)))},f)}export{F as c};

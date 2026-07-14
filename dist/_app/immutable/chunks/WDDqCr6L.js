@@ -1,1 +1,0 @@
-import{O as u,F as y,au as _,av as o,H as t,X as g,aj as i,P as l,Q as d,J as p,M as v}from"./BwbreigZ.js";function F(n,r){let a=null,E=t;var s;if(t){a=p;for(var e=v(document.head);e!==null&&(e.nodeType!==g||e.data!==n);)e=i(e);if(e===null)l(!1);else{var f=i(e);e.remove(),d(f)}}t||(s=document.head.appendChild(u()));try{y(()=>r(s),_|o)}finally{E&&(l(!0),d(a))}}export{F as h};

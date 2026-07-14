@@ -1,1 +1,0 @@
-import{x as c,k as o,C as i,q as d,D as k}from"./BwbreigZ.js";function q(e,n,f){c(()=>{var r=o(()=>n(e,f==null?void 0:f())||{});if(f&&(r!=null&&r.update)){var a=!1,t={};i(()=>{var s=f();d(s),a&&k(t,s)&&(t=s,r.update(s))}),a=!0}if(r!=null&&r.destroy)return()=>r.destroy()})}export{q as a};
