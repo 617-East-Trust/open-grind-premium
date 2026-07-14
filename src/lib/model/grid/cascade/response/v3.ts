@@ -138,7 +138,7 @@ export const cascadeV3ResponseHiddenProfileV1Schema = z.object({
 	...cascadeResponseHiddenProfileV1Schema.shape,
 	data: z.object({
 		...cascadeResponseHiddenProfileV1Schema.shape.data.shape,
-		// TODO: fix @type
+		"@type": z.literal("CascadeItemData$HiddenProfileV1"),
 	}),
 });
 
@@ -146,7 +146,7 @@ export const cascadeV3ResponseSmartBoostProfileV1Schema = z.object({
 	...cascadeResponseSmartBoostProfileV1Schema.shape,
 	data: z.object({
 		...cascadeResponseSmartBoostProfileV1Schema.shape.data.shape,
-		// TODO: fix @type
+		"@type": z.literal("CascadeItemData$SmartBoostProfileV1"),
 	}),
 });
 
@@ -154,7 +154,7 @@ export const cascadeV3ResponseSponsoredProfileV1Schema = z.object({
 	...cascadeResponseSponsoredProfileV1Schema.shape,
 	data: z.object({
 		...cascadeResponseSponsoredProfileV1Schema.shape.data.shape,
-		// TODO: fix @type
+		"@type": z.literal("CascadeItemData$SponsoredProfileV1"),
 	}),
 });
 
@@ -162,7 +162,7 @@ export const cascadeV3ResponseBrazeEventProfileV1Schema = z.object({
 	...cascadeResponseBrazeEventProfileV1Schema.shape,
 	data: z.object({
 		...cascadeResponseBrazeEventProfileV1Schema.shape.data.shape,
-		// TODO: fix @type
+		"@type": z.literal("CascadeItemData$BrazeEventProfileV1"),
 	}),
 });
 
@@ -170,7 +170,7 @@ export const cascadeV3ResponseFavsXtraUpsellV1Schema = z.object({
 	...cascadeResponseFavsXtraUpsellV1Schema.shape,
 	data: z.object({
 		...cascadeResponseFavsXtraUpsellV1Schema.shape.data.shape,
-		// TODO: fix @type
+		"@type": z.literal("CascadeItemData$FavsXtraUpsellV1"),
 	}),
 });
 
@@ -178,7 +178,7 @@ export const cascadeV3ResponseFavsUnlimitedUpsellV1Schema = z.object({
 	...cascadeResponseFavsUnlimitedUpsellV1Schema.shape,
 	data: z.object({
 		...cascadeResponseFavsUnlimitedUpsellV1Schema.shape.data.shape,
-		// TODO: fix @type
+		"@type": z.literal("CascadeItemData$FavsUnlimitedUpsellV1"),
 	}),
 });
 
@@ -194,16 +194,15 @@ export const cascadeV3ResponseFavoritesHeaderNoXtraResultsV1Schema = z.object({
 	...cascadeResponseFavoritesHeaderNoXtraResultsV1Schema.shape,
 	data: z.object({
 		...cascadeResponseFavoritesHeaderNoXtraResultsV1Schema.shape.data.shape,
-		// TODO: fix @type
+		"@type": z.literal("CascadeItemData$FavsXtraNoResultsV1"),
 	}),
 });
 
 export const cascadeV3ResponseProfileHideStatusSchema = z.object({
 	...cascadeResponseProfileHideStatusSchema.shape,
-	// data: z.object({
-	// 	...cascadeResponseProfileHideStatusSchema.shape.data.shape,
-	// TODO: fix @type
-	// }),
+	data: z.object({
+		"@type": z.literal("CascadeItemData$ProfileHideStatusV1"),
+	}),
 });
 
 export const cascadeV3ResponseItemSchema = z.discriminatedUnion("type", [
