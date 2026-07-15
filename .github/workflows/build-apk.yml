@@ -141,6 +141,20 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build frontend
+        # MUST run before `tauri android init`. Tauri's init step captures
+        # frontendDist (../dist) and wires it into the generated Gradle project.
+        # If dist/ doesn't exist at init time, Tauri bakes in a stale asset path
+        # and the frontend never gets copied into app/src/main/assets/ during
+        # `tauri android build` — the resulting APK renders an empty WebView
+        # (the v0.2.0-alpha.3 release shipped with zero web assets bundled).
+        run: bun run build
+
+      - name: Sanity-check dist exists
+        run: |
+          test -f dist/index.html || { echo "dist/index.html missing — frontend build failed"; exit 1; }
+          echo "dist/ contains $(find dist -type f | wc -l) files"
+
       - name: Remove stale Android project
         # The committed gen/android may use an old package name; regenerate fresh.
         run: rm -rf src-tauri/gen/android
@@ -154,14 +168,27 @@ jobs:
       - name: Apply Doze / network patches
         run: bash ./scripts/android/apply-doze-patches.sh
 
-      - name: Build frontend
-        run: bun run build
-
       - name: Build APK
         run: bun run tauri android build --apk
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           NDK_HOME: ${{ env.NDK_HOME }}
+
+      - name: Verify APK contains frontend assets
+        run: |
+          set -euo pipefail
+          APK_PATH=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -type f | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "No APK found" >&2
+            exit 1
+          fi
+          asset_count=$(unzip -l "$APK_PATH" | grep -cE "assets/(_app|index\.html)")
+          if [ "$asset_count" -lt 2 ]; then
+            echo "##[error] APK at $APK_PATH is missing frontend assets (found $asset_count assets/ entries matching _app or index.html)"
+            echo "Frontend bundle did not get packaged; app will white-screen on launch."
+            exit 1
+          fi
+          echo "Frontend assets present in APK ($asset_count matching entries)."
 
       - name: Sign APK (release)
         if: github.event_name == 'release'
@@ -181,7 +208,10 @@ jobs:
             --v4-signing-enabled false \
             "$APK_PATH"
           apksigner verify --verbose "$APK_PATH"
-          # Optional: also produce a copy with -signed suffix for clarity
+          # The APK is now signed in place; -unsigned.apk is the signed build.
+          # Ship a -signed.apk copy so the release asset name reflects reality;
+          # upload only that file (the original -unsigned.apk is byte-identical
+          # post-sign and previously caused user confusion about which to grab).
           cp "$APK_PATH" "${APK_PATH%.apk}-signed.apk" || true
 
       - name: Upload APK to release
@@ -189,7 +219,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+            src-tauri/gen/android/app/build/outputs/apk/**/*-signed.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
