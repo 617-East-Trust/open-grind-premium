@@ -27,6 +27,7 @@ fn strip_upgrade_gates(json: &mut Value) {
         "truncatedProfiles",
         "maxFavorites",
         "favoritesLimit",
+        "isTruncated",
     ] {
         obj.remove(key);
     }
@@ -80,15 +81,13 @@ pub fn get_rewrite_rules() -> &'static [RewriteRule] {
                     ] {
                         flags.insert(key.to_string(), json!(true));
                     }
+
                     json["featureFlags"] = Value::Object(flags);
                 },
             },
             RewriteRule {
                 path_prefix: "/v1/entitlements",
                 transform: |json| {
-                    // Realistic single-digit allocations (not 999 — detection risk).
-                    // Only raise values that are lower than our floor so real
-                    // Unlimited accounts are never downgraded.
                     let floor = 15i64;
                     for key in ["rightNow", "total"] {
                         let current = json.get(key).and_then(|v| v.as_i64()).unwrap_or(0);
@@ -125,7 +124,6 @@ pub fn get_rewrite_rules() -> &'static [RewriteRule] {
                     strip_upgrade_gates(json);
                     if let Some(obj) = json.as_object_mut() {
                         obj.insert("canViewAll".to_string(), json!(true));
-                        // Floor remaining views so free-tier 0 does not keep the paywall.
                         let remaining = obj
                             .get("remainingViews")
                             .and_then(|v| v.as_i64())
@@ -154,7 +152,6 @@ pub fn get_rewrite_rules() -> &'static [RewriteRule] {
                 transform: |json| {
                     strip_upgrade_gates(json);
                     if let Some(obj) = json.as_object_mut() {
-                        // Prefer larger page sizes when the server omits or caps them.
                         let page = obj.get("pageSize").and_then(|v| v.as_i64()).unwrap_or(0);
                         if page > 0 && page < 50 {
                             obj.insert("pageSize".to_string(), json!(50));
@@ -169,6 +166,32 @@ pub fn get_rewrite_rules() -> &'static [RewriteRule] {
             RewriteRule {
                 path_prefix: "/v2/albums",
                 transform: strip_upgrade_gates,
+            },
+            // === Interest (Taps + Views) — inverted freemium unlock ===
+            RewriteRule {
+                path_prefix: "/v2/taps",
+                transform: |json| {
+                    strip_upgrade_gates(json);
+                    if let Some(obj) = json.as_object_mut() {
+                        obj.insert("canViewAll".to_string(), json!(true));
+                    }
+                },
+            },
+            RewriteRule {
+                path_prefix: "/v7/views",
+                transform: |json| {
+                    strip_upgrade_gates(json);
+                    if let Some(obj) = json.as_object_mut() {
+                        obj.insert("canViewAll".to_string(), json!(true));
+                        let remaining = obj
+                            .get("remainingViews")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or(0);
+                        if remaining < 50 {
+                            obj.insert("remainingViews".to_string(), json!(50));
+                        }
+                    }
+                },
             },
             // === Settings / prefs injection ===
             RewriteRule {
@@ -243,5 +266,13 @@ mod path_match_tests {
         assert!(!path_matches("/v1/media", "/v1/me"));
         assert!(!path_matches("/v1/messages", "/v1/me"));
         assert!(!path_matches("/v3/explorex", "/v3/explore"));
+    }
+
+    #[test]
+    fn taps_and_views_prefixes() {
+        assert!(path_matches("/v2/taps/received", "/v2/taps"));
+        assert!(path_matches("/v2/taps/add", "/v2/taps"));
+        assert!(path_matches("/v7/views/list", "/v7/views"));
+        assert!(!path_matches("/v2/tapsx", "/v2/taps"));
     }
 }
