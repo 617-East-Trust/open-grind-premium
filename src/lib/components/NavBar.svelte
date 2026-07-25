@@ -4,6 +4,7 @@
 	import DotsNineIcon from "phosphor-svelte/lib/DotsNineIcon";
 	import DropIcon from "phosphor-svelte/lib/DropIcon";
 	import FireIcon from "phosphor-svelte/lib/FireIcon";
+	import MapPinIcon from "phosphor-svelte/lib/MapPinIcon";
 
 	import { getMyProfile } from "$lib/api/profile";
 	import { getOrCreateConversationsState } from "$lib/chat/conversations-context.svelte";
@@ -67,6 +68,13 @@
 		>
 			<FireIcon weight="fill" />
 			Interest
+		</a>
+		<a
+			href="/map"
+			data-active={page.route.id === "/(protected)/(navbar)/map"}
+		>
+			<MapPinIcon weight="fill" />
+			Map
 		</a>
 		<a href="/chat" data-active={page.route.id === "/(protected)/chat"}>
 			<ChatCircleIcon weight="fill" />
