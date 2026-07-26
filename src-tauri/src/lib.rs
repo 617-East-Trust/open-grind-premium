@@ -86,12 +86,18 @@ pub fn run() {
             set_foreground,
         ])
         .setup(|app| {
-            let app_data = app
-                .path()
-                .app_data_dir()
-                .expect("failed to get app data dir");
+            let app_data = match app.path().app_data_dir() {
+                Ok(dir) => dir,
+                Err(e) => {
+                    tracing::error!(error = %e, "failed to get app data directory");
+                    // On Android, we can't show a dialog from setup, but we can log.
+                    // The app will fail to initialize storage, but won't panic.
+                    return Err(e.into());
+                }
+            };
 
             // Native keyring with universal file fallback on every platform.
+            // This function never panics; it logs warnings and falls back to file store.
             storage::init_keyring(app_data);
 
             // Seed Grindr API version from keyring cache before building UA.
@@ -99,6 +105,8 @@ pub fn run() {
 
             if let Ok(client) = GrindrClient::new().map(Arc::new) {
                 let _ = app.state::<AppState>().client.set(client);
+            } else {
+                tracing::warn!("failed to create GrindrClient — continuing without API client");
             }
 
             // Background: refresh Grindr app version and rebuild UA if it changed.
@@ -132,6 +140,13 @@ pub fn run() {
             api::ws::spawn_ws_task(app.handle().clone());
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("failed to build tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::ExitRequested { api, .. } = event {
+                // Prevent exit on back press when running as a mobile app; let the
+                // OS manage the lifecycle. The app will be backgrounded instead.
+                api.prevent_exit();
+            }
+        });
 }
