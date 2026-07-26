@@ -61,7 +61,7 @@ jobs:
         run: cargo clippy --lib --manifest-path src-tauri/Cargo.toml -- -D warnings
 
   build-android:
-    # Full APK only on release / manual dispatch — not every PR.
+    # Full APK only on release / manual dispatch - not every PR.
     if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     needs: check
     runs-on: ubuntu-latest
@@ -142,17 +142,17 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build frontend
-        # MUST run before `tauri android init`. Tauri's init step captures
-        # frontendDist (../dist) and wires it into the generated Gradle project.
-        # If dist/ doesn't exist at init time, Tauri bakes in a stale asset path
-        # and the frontend never gets copied into app/src/main/assets/ during
-        # `tauri android build` — the resulting APK renders an empty WebView
-        # (the v0.2.0-alpha.3 release shipped with zero web assets bundled).
+        # Ensure dist/ exists before android build. `tauri android build` also
+        # runs beforeBuildCommand, but an early failure there is harder to read.
+        # Note: Tauri embeds frontendDist into the native .so at compile time;
+        # it does NOT copy index.html/_app into APK assets/ (that dir only holds
+        # tauri.conf.json + optional bundle.resources).
         run: bun run build
 
       - name: Sanity-check dist exists
         run: |
-          test -f dist/index.html || { echo "dist/index.html missing — frontend build failed"; exit 1; }
+          test -f dist/index.html || { echo "dist/index.html missing - frontend build failed"; exit 1; }
+          test -d dist/_app || { echo "dist/_app missing - frontend build incomplete"; exit 1; }
           echo "dist/ contains $(find dist -type f | wc -l) files"
 
       - name: Remove stale Android project
@@ -182,13 +182,36 @@ jobs:
             echo "No APK found" >&2
             exit 1
           fi
-          asset_count=$(unzip -l "$APK_PATH" | grep -cE "assets/(_app|index\.html)")
-          if [ "$asset_count" -lt 2 ]; then
-            echo "##[error] APK at $APK_PATH is missing frontend assets (found $asset_count assets/ entries matching _app or index.html)"
-            echo "Frontend bundle did not get packaged; app will white-screen on launch."
+          echo "Inspecting $APK_PATH"
+
+          # Tauri embeds frontendDist into libopen_grind_lib.so (custom protocol
+          # tauri://localhost). Checking APK assets/ for _app|index.html is wrong:
+          # assets/ only has tauri.conf.json (+ dexopt profiles). That false
+          # check blocked valid builds after v0.2.0-alpha.3.
+          SO_ENTRY=$(unzip -Z1 "$APK_PATH" | grep -E 'lib/.+/libopen_grind_lib\.so$' | head -1 || true)
+          if [ -z "$SO_ENTRY" ]; then
+            echo "##[error] APK missing native library libopen_grind_lib.so"
+            unzip -l "$APK_PATH" | head -80 || true
             exit 1
           fi
-          echo "Frontend assets present in APK ($asset_count matching entries)."
+
+          TMP=$(mktemp -d)
+          trap 'rm -rf "$TMP"' EXIT
+          unzip -p "$APK_PATH" "$SO_ENTRY" > "$TMP/lib.so"
+          so_size=$(wc -c < "$TMP/lib.so")
+          echo "Native lib: $SO_ENTRY ($so_size bytes)"
+
+          if ! grep -aFq '_app/immutable' "$TMP/lib.so"; then
+            echo "##[error] Native lib missing embedded frontend (_app/immutable)"
+            echo "dist/ was not embedded at tauri-build time; app will white-screen."
+            ls -la dist/ 2>/dev/null || echo "dist/ missing at verify time"
+            exit 1
+          fi
+          if ! grep -aFq '<!DOCTYPE html>' "$TMP/lib.so"; then
+            echo "##[error] Native lib missing embedded HTML entry (DOCTYPE)"
+            exit 1
+          fi
+          echo "Frontend assets embedded in native library (verified _app/immutable + DOCTYPE)."
 
       - name: Sign APK (release)
         if: github.event_name == 'release'

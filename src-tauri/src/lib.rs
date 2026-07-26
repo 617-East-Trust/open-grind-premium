@@ -42,6 +42,7 @@ pub fn run() {
     let (ws_tx, ws_rx) = mpsc::channel(64);
     let auth_notify = Arc::new(Notify::new());
 
+    #[allow(unused_mut)] // mut only needed when debug_assertions injects devtools
     let mut builder = tauri::Builder::default();
 
     #[cfg(debug_assertions)]
