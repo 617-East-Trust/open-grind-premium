@@ -724,13 +724,13 @@ pub struct DeviceInfo {
 impl Default for DeviceInfo {
     fn default() -> Self {
         let mut rng = rand::thread_rng();
-        let profile = &DEVICE_PROFILES[rng.gen::<usize>() % DEVICE_PROFILES.len()];
-        let timezone = SAFE_TIMEZONES[rng.gen::<usize>() % SAFE_TIMEZONES.len()];
+        let profile = &DEVICE_PROFILES[rng.r#gen::<usize>() % DEVICE_PROFILES.len()];
+        let timezone = SAFE_TIMEZONES[rng.r#gen::<usize>() % SAFE_TIMEZONES.len()];
 
-        let device_id = format!("{:016x}", rng.gen::<u64>());
+        let device_id = format!("{:016x}", rng.r#gen::<u64>());
 
         let range = MAX_ANDROID_VERSION.saturating_sub(profile.min_android) + 1;
-        let android_version = profile.min_android + rng.gen::<u8>() % range;
+        let android_version = profile.min_android + rng.r#gen::<u8>() % range;
 
         Self {
             device_type: 2,
