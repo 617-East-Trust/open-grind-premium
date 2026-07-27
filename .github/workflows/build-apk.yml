@@ -228,6 +228,8 @@ jobs:
             --ks-pass "pass:${OPEN_GRIND_KEYSTORE_PASSWORD}" \
             --key-pass "pass:${OPEN_GRIND_KEYSTORE_PASSWORD}" \
             --ks-key-alias "${OPEN_GRIND_KEYSTORE_ALIAS:-open-grind}" \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
             --v4-signing-enabled false \
             "$APK_PATH"
           apksigner verify --verbose "$APK_PATH"
