@@ -1,5 +1,5 @@
 use keyring_core::Entry;
-use rand;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use wreq::header::{HeaderName, HeaderValue};
 
@@ -723,13 +723,14 @@ pub struct DeviceInfo {
 
 impl Default for DeviceInfo {
     fn default() -> Self {
-        let profile = &DEVICE_PROFILES[rand::random::<u64>() as usize % DEVICE_PROFILES.len()];
-        let timezone = SAFE_TIMEZONES[rand::random::<u64>() as usize % SAFE_TIMEZONES.len()];
+        let mut rng = rand::thread_rng();
+        let profile = &DEVICE_PROFILES[rng.gen::<usize>() % DEVICE_PROFILES.len()];
+        let timezone = SAFE_TIMEZONES[rng.gen::<usize>() % SAFE_TIMEZONES.len()];
 
-        let device_id = format!("{:016x}", rand::random::<u64>());
+        let device_id = format!("{:016x}", rng.gen::<u64>());
 
         let range = MAX_ANDROID_VERSION.saturating_sub(profile.min_android) + 1;
-        let android_version = profile.min_android + rand::random::<u8>() % range;
+        let android_version = profile.min_android + rng.gen::<u8>() % range;
 
         Self {
             device_type: 2,

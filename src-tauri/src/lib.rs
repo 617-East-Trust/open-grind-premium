@@ -86,58 +86,35 @@ pub fn run() {
             set_foreground,
         ])
         .setup(|app| {
-            let app_data = match app.path().app_data_dir() {
-                Ok(dir) => dir,
-                Err(e) => {
-                    tracing::error!(error = %e, "failed to get app data directory");
-                    // On Android, we can't show a dialog from setup, but we can log.
-                    // The app will fail to initialize storage, but won't panic.
-                    return Err(e.into());
+            // Wrap the entire setup in catch_unwind to prevent panics from
+            // crashing the app before the WebView can render. If setup panics,
+            // the app will still show the UI (albeit without API functionality).
+            let setup_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                setup_app(app)
+            }));
+
+            match setup_result {
+                Ok(Ok(())) => {
+                    tracing::info!("app setup completed successfully");
                 }
-            };
-
-            // Native keyring with universal file fallback on every platform.
-            // This function never panics; it logs warnings and falls back to file store.
-            storage::init_keyring(app_data);
-
-            // Seed Grindr API version from keyring cache before building UA.
-            api::version::load_cached();
-
-            if let Ok(client) = GrindrClient::new().map(Arc::new) {
-                let _ = app.state::<AppState>().client.set(client);
-            } else {
-                tracing::warn!("failed to create GrindrClient — continuing without API client");
+                Ok(Err(e)) => {
+                    // Setup returned an error but didn't panic — log and continue.
+                    // The app will render but API calls will fail gracefully.
+                    tracing::error!(error = %e, "app setup failed (non-fatal)");
+                }
+                Err(panic_info) => {
+                    // Setup panicked — log the panic and continue with degraded mode.
+                    let msg = if let Some(s) = panic_info.downcast_ref::<&str>() {
+                        s.to_string()
+                    } else if let Some(s) = panic_info.downcast_ref::<String>() {
+                        s.clone()
+                    } else {
+                        "unknown panic".to_string()
+                    };
+                    tracing::error!(panic = %msg, "app setup panicked (recovered)");
+                }
             }
 
-            // Background: refresh Grindr app version and rebuild UA if it changed.
-            {
-                let handle = app.handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    let info = api::version::refresh_if_stale().await;
-                    if let Ok(client) = handle.state::<AppState>().client() {
-                        client.apply_app_version(&info).await;
-                    }
-                });
-            }
-
-            // Periodic WS health while backgrounded (Doze-friendly soft keep-alive).
-            api::ws::spawn_background_health_task(app.handle().clone());
-
-            // Reload session after keyring is ready (covers file-store path too).
-            {
-                let handle = app.handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    let state = handle.state::<AppState>();
-                    if let Ok(client) = state.client() {
-                        client.clone().reload_session().await;
-                        if client.clone().authorization_header().await.is_some() {
-                            state.auth_notify.notify_one();
-                        }
-                    }
-                });
-            }
-
-            api::ws::spawn_ws_task(app.handle().clone());
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -149,4 +126,73 @@ pub fn run() {
                 api.prevent_exit();
             }
         });
+}
+
+/// Separated setup logic so it can be wrapped in catch_unwind.
+/// Any panic here is caught and the app continues in degraded mode.
+fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let app_data = app.path().app_data_dir().map_err(|e| {
+        tracing::error!(error = %e, "failed to get app data directory");
+        e
+    })?;
+
+    // Native keyring with universal file fallback on every platform.
+    // This function never panics; it logs warnings and falls back to file store.
+    storage::init_keyring(app_data);
+
+    // Seed Grindr API version from keyring cache before building UA.
+    api::version::load_cached();
+
+    // Create the API client. This involves:
+    // 1. Loading/generating device fingerprint (uses rand — can fail on some devices)
+    // 2. Building wreq HTTP clients (uses BoringSSL — can fail if TLS init fails)
+    // Wrap in catch_unwind because wreq/boring-sys can panic during TLS init
+    // on some Android devices with unusual system library configurations.
+    let client_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        GrindrClient::new()
+    }));
+
+    match client_result {
+        Ok(Ok(client)) => {
+            let _ = app.state::<AppState>().client.set(Arc::new(client));
+            tracing::info!("GrindrClient initialized successfully");
+        }
+        Ok(Err(e)) => {
+            tracing::error!(error = %e, "GrindrClient creation failed — app will run without API");
+        }
+        Err(_) => {
+            tracing::error!("GrindrClient creation panicked (TLS/crypto init failure) — app will run without API");
+        }
+    }
+
+    // Background: refresh Grindr app version and rebuild UA if it changed.
+    {
+        let handle = app.handle().clone();
+        tauri::async_runtime::spawn(async move {
+            let info = api::version::refresh_if_stale().await;
+            if let Ok(client) = handle.state::<AppState>().client() {
+                client.apply_app_version(&info).await;
+            }
+        });
+    }
+
+    // Periodic WS health while backgrounded (Doze-friendly soft keep-alive).
+    api::ws::spawn_background_health_task(app.handle().clone());
+
+    // Reload session after keyring is ready (covers file-store path too).
+    {
+        let handle = app.handle().clone();
+        tauri::async_runtime::spawn(async move {
+            let state = handle.state::<AppState>();
+            if let Ok(client) = state.client() {
+                client.clone().reload_session().await;
+                if client.clone().authorization_header().await.is_some() {
+                    state.auth_notify.notify_one();
+                }
+            }
+        });
+    }
+
+    api::ws::spawn_ws_task(app.handle().clone());
+    Ok(())
 }
