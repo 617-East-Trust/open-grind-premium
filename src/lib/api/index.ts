@@ -202,7 +202,10 @@ export function asAppError(error: unknown) {
 		.safeParse(error);
 	if (success) {
 		let prettyMessage: string;
-		if (typeof data.message === "string") {
+		if (data.kind === "NotInitialized") {
+			prettyMessage =
+				"Network client failed to initialize. Please restart the app.";
+		} else if (typeof data.message === "string") {
 			prettyMessage = data.message;
 		} else if (data.message) {
 			prettyMessage = `Error ${data.message.code}: ${data.message.message}`;

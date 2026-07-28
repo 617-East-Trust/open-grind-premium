@@ -19,7 +19,31 @@ pub struct AppState {
 }
 
 impl AppState {
+    /// Get the API client, lazily initializing it if setup failed to create one.
+    /// This ensures that even if BoringSSL/TLS init failed during app startup
+    /// (e.g., due to Android system library timing), the client can be created
+    /// later when the user actually tries to log in.
     pub fn client(&self) -> Result<Arc<GrindrClient>, AppError> {
-        self.client.get().cloned().ok_or(AppError::NotInitialized)
+        // Fast path: client already initialized
+        if let Some(client) = self.client.get() {
+            return Ok(client.clone());
+        }
+
+        // Slow path: try to initialize now (lazy recovery from startup failure)
+        tracing::info!("attempting lazy GrindrClient initialization");
+        match GrindrClient::new() {
+            Ok(client) => {
+                let arc = Arc::new(client);
+                // OnceLock::set may fail if another thread raced us — that's fine,
+                // just return whichever instance won.
+                let _ = self.client.set(arc.clone());
+                tracing::info!("lazy GrindrClient initialization succeeded");
+                Ok(self.client.get().cloned().unwrap_or(arc))
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "lazy GrindrClient initialization failed");
+                Err(AppError::NotInitialized)
+            }
+        }
     }
 }
