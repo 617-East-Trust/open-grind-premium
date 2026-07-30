@@ -86,12 +86,28 @@ pub fn run() {
             set_foreground,
         ])
         .setup(|app| {
-            // Wrap the entire setup in catch_unwind. GrindrClient::new() can
-            // panic deep inside BoringSSL/wreq on some Android devices. Without
-            // this guard the app force-closes before the WebView even renders.
-            // The lazy client init in state.rs will retry on first API call.
+            // ── Phase 1: Safe initialization (never panics) ──────────────
+            // These MUST run before anything else and cannot be skipped.
+            let app_data = match app.path().app_data_dir() {
+                Ok(dir) => dir,
+                Err(e) => {
+                    tracing::error!(error = %e, "failed to get app data directory — using fallback");
+                    std::path::PathBuf::from("/data/data/com.opengrind.premium/files")
+                }
+            };
+
+            // Initialize credential store (file-backed fallback, never panics).
+            storage::init_keyring(app_data);
+
+            // Seed Grindr API version from keyring cache (never panics).
+            api::version::load_cached();
+
+            // ── Phase 2: Client + background tasks (can panic) ───────────
+            // GrindrClient::new() can panic inside BoringSSL/wreq on some
+            // Android devices. Wrap in catch_unwind so the app still opens.
+            // The lazy init in state.rs will retry on first API command.
             let setup_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                setup_app(app)
+                setup_client_and_tasks(app)
             }));
 
             match setup_result {
@@ -106,7 +122,10 @@ pub fn run() {
                     } else {
                         "unknown panic".to_string()
                     };
-                    tracing::error!(panic = %msg, "app setup panicked — recovered; client will lazy-init on first use");
+                    tracing::error!(
+                        panic = %msg,
+                        "client/task setup panicked — recovered; client will lazy-init on first use"
+                    );
                 }
             }
 
@@ -123,28 +142,11 @@ pub fn run() {
         });
 }
 
-/// App setup — initializes storage, client, and background tasks.
-/// May panic (caller wraps in catch_unwind); any failure here is
-/// recoverable via lazy client initialization in state.rs.
-fn setup_app(app: &mut tauri::App) {
-    // Get app data directory for credential storage.
-    let app_data = match app.path().app_data_dir() {
-        Ok(dir) => dir,
-        Err(e) => {
-            tracing::error!(error = %e, "failed to get app data directory — using fallback");
-            std::path::PathBuf::from("/data/data/com.opengrind.premium/files")
-        }
-    };
-
-    // Native keyring with universal file fallback on every platform.
-    storage::init_keyring(app_data);
-
-    // Seed Grindr API version from keyring cache before building UA.
-    api::version::load_cached();
-
-    // Create the API client. This can panic inside BoringSSL on some devices.
-    // If it does, catch_unwind in the caller will catch it, and the lazy init
-    // in state.rs will retry when the user actually invokes a command.
+/// Phase 2 of setup: create the API client and spawn background tasks.
+/// This function may panic (BoringSSL); caller wraps in catch_unwind.
+/// If it panics, keyring is already initialized so lazy client init works.
+fn setup_client_and_tasks(app: &mut tauri::App) {
+    // Create the API client.
     match GrindrClient::new() {
         Ok(client) => {
             let _ = app.state::<AppState>().client.set(Arc::new(client));
