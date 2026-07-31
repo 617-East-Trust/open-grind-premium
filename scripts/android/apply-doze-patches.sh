@@ -17,13 +17,15 @@ fi
 # tauri android init generates a minimal gradle.properties WITHOUT these,
 # so we add them if missing, or update them if present.
 if [[ -f "$gradle_props" ]]; then
-  # Helper: set or add a property
+  # Helper: set or add a property (ensures trailing newline before append)
   set_prop() {
     local key="$1"
     local val="$2"
     if grep -q "^${key}=" "$gradle_props"; then
       sed -i "s/^${key}=.*/${key}=${val}/" "$gradle_props"
     else
+      # Ensure file ends with newline before appending to avoid concatenation
+      [ -n "$(tail -c1 "$gradle_props" 2>/dev/null || echo x)" ] && echo >> "$gradle_props"
       echo "${key}=${val}" >> "$gradle_props"
     fi
   }
