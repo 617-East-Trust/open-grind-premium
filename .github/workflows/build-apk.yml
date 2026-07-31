@@ -168,6 +168,11 @@ jobs:
       - name: Apply Doze / network patches
         run: bash ./scripts/android/apply-doze-patches.sh
 
+      - name: Verify gradle.properties after patch
+        run: |
+          echo "=== gradle.properties after patch ==="
+          cat src-tauri/gen/android/gradle.properties | grep -E "compileSdk|targetSdk|buildTools"
+
       - name: Build APK
         run: bun run tauri android build --apk
         env:
