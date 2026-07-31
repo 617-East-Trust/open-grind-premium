@@ -12,15 +12,28 @@ if [[ ! -d "$app_src" ]]; then
   echo "[doze-patch] gen/android not found — run tauri android init first" >&2
   exit 1
 fi
-# Downgrade SDK targets for Android 15 (API 35) device compatibility.
-# tauri android init defaults to API 36, which blocks install on API 35 devices.
+
+# Ensure gradle.properties has the opengrind.android.* SDK properties.
+# tauri android init generates a minimal gradle.properties WITHOUT these,
+# so we add them if missing, or update them if present.
 if [[ -f "$gradle_props" ]]; then
-  sed -i.bak \
-    -e 's/^opengrind.android.compileSdk=.*/opengrind.android.compileSdk=35/' \
-    -e 's/^opengrind.android.targetSdk=.*/opengrind.android.targetSdk=35/' \
-    -e 's/^opengrind.android.buildTools=.*/opengrind.android.buildTools=35.0.0/' \
-    "$gradle_props" && rm -f "${gradle_props}.bak"
-  echo "[doze-patch] pinned compileSdk/targetSdk=35, buildTools=35.0.0"
+  # Helper: set or add a property
+  set_prop() {
+    local key="$1"
+    local val="$2"
+    if grep -q "^${key}=" "$gradle_props"; then
+      sed -i "s/^${key}=.*/${key}=${val}/" "$gradle_props"
+    else
+      echo "${key}=${val}" >> "$gradle_props"
+    fi
+  }
+  set_prop "opengrind.android.compileSdk" "35"
+  set_prop "opengrind.android.targetSdk" "35"
+  set_prop "opengrind.android.minSdk" "28"
+  set_prop "opengrind.android.buildTools" "35.0.0"
+  set_prop "opengrind.android.ndk" "27.0.12077973"
+  set_prop "opengrind.android.cmake" "3.31.6"
+  echo "[doze-patch] ensured opengrind.android.* SDK props: compileSdk=35 targetSdk=35 minSdk=28 buildTools=35.0.0"
 fi
 
 # Patch app/build.gradle.kts for 16KB page size compatibility on Pixel 9 Pro XL / Android 15.
@@ -59,10 +72,8 @@ if [[ -z "$main_activity" || ! -f "$manifest" ]]; then
   exit 1
 fi
 
-# Ensure RECEIVE_BOOT_COMPLETED is not required; we only add WAKE_LOCK-free
-# network state so the process can re-establish WS after Doze when allowed.
+# Ensure ACCESS_NETWORK_STATE permission for Doze-aware network reconnect.
 if ! grep -q 'android.permission.ACCESS_NETWORK_STATE' "$manifest"; then
-  # Insert before </manifest> is wrong place — permissions go under root before <application>
   if grep -q 'android.permission.INTERNET' "$manifest"; then
     sed -i.bak 's|android.permission.INTERNET" />|android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />|' "$manifest" \
       || sed -i '' 's|android.permission.INTERNET" />|android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />|' "$manifest"
