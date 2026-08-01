@@ -24,14 +24,12 @@ fi
 # 1. gradle.properties — pin SDK / NDK / CMake so generated project matches CI
 # ---------------------------------------------------------------------------
 if [[ -f "$gradle_props" ]]; then
-  # Helper: set or add a property (ensures trailing newline before append)
   set_prop() {
     local key="$1"
     local val="$2"
     if grep -q "^${key}=" "$gradle_props"; then
       sed -i "s/^${key}=.*/${key}=${val}/" "$gradle_props"
     else
-      # Ensure file ends with newline before appending to avoid concatenation
       [ -n "$(tail -c1 "$gradle_props" 2>/dev/null || echo x)" ] && echo >> "$gradle_props"
       echo "${key}=${val}" >> "$gradle_props"
     fi
@@ -40,7 +38,6 @@ if [[ -f "$gradle_props" ]]; then
   set_prop "opengrind.android.targetSdk" "35"
   set_prop "opengrind.android.minSdk" "28"
   set_prop "opengrind.android.buildTools" "35.0.0"
-  # Keep NDK 27 to match .github/workflows/build-apk.yml
   set_prop "opengrind.android.ndk" "27.0.12077973"
   set_prop "opengrind.android.cmake" "3.31.6"
   echo "[doze-patch] ensured opengrind.android.* SDK props: compileSdk=35 targetSdk=35 minSdk=28 buildTools=35.0.0 ndk=27.0.12077973"
@@ -48,8 +45,6 @@ fi
 
 # ---------------------------------------------------------------------------
 # 2. 16 KB page-size packaging (Pixel 9 / 9 Pro / 9 Pro XL / Android 15+)
-#    Compressed .so files are extracted at install time, bypassing the ELF
-#    PT_LOAD 16 KB alignment check that otherwise rejects the APK.
 # ---------------------------------------------------------------------------
 app_gradle="$android_root/app/build.gradle.kts"
 if [[ -f "$app_gradle" ]] && ! grep -q 'useLegacyPackaging' "$app_gradle"; then
@@ -67,17 +62,14 @@ block = """    // Workaround for Android 15+ 16KB page size install block.
         }
     }
 """
-# Prefer inserting after the last buildFeatures { ... } block
 m = list(re.finditer(r'^    buildFeatures \{[^}]*\n    \}', src, re.M))
 if m:
     end = m[-1].end()
     src = src[:end] + "\n" + block + src[end:]
     open(p, "w").write(src)
 else:
-    # Fallback: append inside android { } if present
     m2 = re.search(r'^android \{', src, re.M)
     if m2:
-        # Insert near the top of the android block after the opening brace
         insert_at = m2.end()
         src = src[:insert_at] + "\n" + block + src[insert_at:]
         open(p, "w").write(src)
@@ -86,7 +78,7 @@ PY
 fi
 
 # ---------------------------------------------------------------------------
-# 3. AndroidManifest.xml — permissions required for stable physical installs
+# 3. AndroidManifest.xml — permissions (Python XML-safe, not sed)
 # ---------------------------------------------------------------------------
 manifest="$app_src/AndroidManifest.xml"
 if [[ ! -f "$manifest" ]]; then
@@ -94,51 +86,59 @@ if [[ ! -f "$manifest" ]]; then
   exit 1
 fi
 
-# Permissions we want present (order does not matter; Android merges them).
-# These let the Tauri geolocation / notification plugins actually succeed on
-# a clean physical device instead of being denied at the system level.
-REQUIRED_PERMS=(
-  "android.permission.ACCESS_NETWORK_STATE"
-  "android.permission.ACCESS_COARSE_LOCATION"
-  "android.permission.ACCESS_FINE_LOCATION"
-  "android.permission.POST_NOTIFICATIONS"
-  "android.permission.VIBRATE"
-)
+python3 - "$manifest" <<'PY'
+import sys
+from pathlib import Path
 
-add_permission() {
-  local perm="$1"
-  if grep -q "$perm" "$manifest"; then
-    return 0
-  fi
-  # Prefer inserting right after the INTERNET permission if it exists
-  if grep -q 'android.permission.INTERNET' "$manifest"; then
-    # Use a portable sed that works on both GNU and BSD
-    if sed --version >/dev/null 2>&1; then
-      # GNU sed
-      sed -i "s|android.permission.INTERNET\" />|android.permission.INTERNET\" />\n    <uses-permission android:name=\"${perm}\" />|" "$manifest"
-    else
-      # BSD sed (macOS)
-      sed -i '' "s|android.permission.INTERNET\" />|android.permission.INTERNET\" />\n    <uses-permission android:name=\"${perm}\" />|" "$manifest"
-    fi
-  else
-    # Fallback: insert before the first <application or <activity
-    if sed --version >/dev/null 2>&1; then
-      sed -i "0,/<application/<uses-permission android:name=\"${perm}\" \/>\n&/" "$manifest" || \
-      sed -i "0,/<activity/<uses-permission android:name=\"${perm}\" \/>\n&/" "$manifest"
-    else
-      # Best-effort for BSD
-      sed -i '' "/<application/i\n    <uses-permission android:name=\"${perm}\" />" "$manifest" 2>/dev/null || true
-    fi
-  fi
-  echo "[doze-patch] added $perm"
-}
+manifest = Path(sys.argv[1])
+text = manifest.read_text(encoding="utf-8")
 
-for perm in "${REQUIRED_PERMS[@]}"; do
-  add_permission "$perm"
-done
+REQUIRED = [
+    "android.permission.ACCESS_NETWORK_STATE",
+    "android.permission.ACCESS_COARSE_LOCATION",
+    "android.permission.ACCESS_FINE_LOCATION",
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.VIBRATE",
+]
+
+missing = [p for p in REQUIRED if p not in text]
+if not missing:
+    print("[doze-patch] all required permissions already present")
+    sys.exit(0)
+
+lines_to_insert = [
+    f'    <uses-permission android:name="{p}" />' for p in missing
+]
+block = "\n".join(lines_to_insert) + "\n"
+
+# Prefer insert right after the INTERNET permission line
+needle = 'android.permission.INTERNET"'
+idx = text.find(needle)
+if idx != -1:
+    # Find end of that line
+    line_end = text.find("\n", idx)
+    if line_end == -1:
+        line_end = len(text)
+    else:
+        line_end += 1  # include the newline
+    text = text[:line_end] + block + text[line_end:]
+else:
+    # Fallback: insert before <application
+    app_idx = text.find("<application")
+    if app_idx == -1:
+        app_idx = text.find("<activity")
+    if app_idx == -1:
+        print("[doze-patch] warning: could not find insertion point", file=sys.stderr)
+        sys.exit(0)
+    text = text[:app_idx] + block + text[app_idx:]
+
+manifest.write_text(text, encoding="utf-8")
+for p in missing:
+    print(f"[doze-patch] added {p}")
+PY
 
 # ---------------------------------------------------------------------------
-# 4. MainActivity.kt marker (idempotent documentation of the lifecycle path)
+# 4. MainActivity.kt marker
 # ---------------------------------------------------------------------------
 main_activity="$(find "$app_src/java" -name 'MainActivity.kt' 2>/dev/null | head -1 || true)"
 if [[ -n "$main_activity" ]]; then

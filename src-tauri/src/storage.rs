@@ -145,16 +145,16 @@ pub fn init_keyring(base: std::path::PathBuf) {
         }
     }
 
+    // Android: always use the file-backed store.
+    // android_native_keyring_store::Store::new() has caused immediate
+    // process death on some Pixel 9 / Android 15 devices during early
+    // startup (before the WebView paints). File store is stable and
+    // sufficient for session tokens on mobile.
     #[cfg(target_os = "android")]
     {
-        match android_native_keyring_store::Store::new() {
-            Ok(store) => {
-                keyring_core::set_default_store(store);
-                tracing::info!("initialized Android keyring store");
-                return;
-            }
-            Err(e) => tracing::warn!(error = %e, "failed to init Android keyring store"),
-        }
+        tracing::info!("Android: forcing file-backed credential store (native keyring skipped)");
+        init_file_store(base);
+        return;
     }
 
     #[cfg(all(target_os = "macos", feature = "keychain"))]
