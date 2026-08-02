@@ -9,6 +9,7 @@
 		getPreferences,
 		setPreferences,
 	} from "$lib/app-data/preferences.svelte";
+	import CommandCenterTrigger from "$lib/components/command-center/CommandCenterTrigger.svelte";
 	import { defaultFilters } from "$lib/components/filters/filters";
 	import ProgressiveBlur from "$lib/components/ProgressiveBlur.svelte";
 	import GridFilters from "../GridFilters.svelte";
@@ -149,6 +150,9 @@
 			<LocationChange expansion={0} onUpdate={onUpdatePreferences} />
 		</div>
 		<QuickFilters bind:openFilters bind:filters {onUpdateFilters} />
+		<div class="ms-auto shrink-0 self-center">
+			<CommandCenterTrigger />
+		</div>
 	</div>
 </ProgressiveBlur>
 <div class="h-20"></div>

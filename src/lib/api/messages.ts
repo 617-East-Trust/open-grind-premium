@@ -54,6 +54,14 @@ export async function getSingleMessage({
 	return message;
 }
 
+/** Grindr only wants mediaId for image sends (open-grind toOutboundBody). */
+function toOutboundBody(message: z.infer<typeof messageSchema>): unknown {
+	if (message.type === "Image" || message.type === "ExpiringImage") {
+		return { mediaId: message.body.mediaId };
+	}
+	return message.body;
+}
+
 export async function sendMessage({
 	toUserId,
 	message,
@@ -69,7 +77,7 @@ export async function sendMessage({
 				type: "Direct",
 				targetId: toUserId,
 			},
-			body: message.body,
+			body: toOutboundBody(message),
 		},
 	}).then((res) => res.jsonParsed(apiResponseMessageSchema));
 }

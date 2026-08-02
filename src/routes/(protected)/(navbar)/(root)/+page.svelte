@@ -6,6 +6,8 @@
 	import LocationChooser from "./LocationEmpty.svelte";
 	import TopBar from "./top-bar/TopBar.svelte";
 
+	import { onMount } from "svelte";
+
 	let preferences = $state(getPreferences());
 
 	let topBar: TopBar | null = $state(null);
@@ -13,6 +15,17 @@
 	function onPullRefresh() {
 		gridState.refresh();
 	}
+
+	onMount(() => {
+		const onFilters = () => {
+			preferences = getPreferences();
+			// Cascade re-reads filters from preferences inside refresh
+			gridState.refresh();
+		};
+		window.addEventListener("og:grid-filters-changed", onFilters);
+		return () =>
+			window.removeEventListener("og:grid-filters-changed", onFilters);
+	});
 </script>
 
 <svelte:head>

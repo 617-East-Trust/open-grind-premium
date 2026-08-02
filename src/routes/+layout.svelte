@@ -37,6 +37,7 @@
 
 	import RequestBlockedAlert from "$lib/api/request-blocked/RequestBlockedAlert.svelte";
 	import favicon from "$lib/assets/favicon.png";
+	import CommandCenter from "$lib/components/command-center/CommandCenter.svelte";
 
 	let {
 		children,
@@ -67,4 +68,5 @@
 <IconContext values={{}}>
 	{@render children?.()}
 </IconContext>
+<CommandCenter />
 <RequestBlockedAlert />
