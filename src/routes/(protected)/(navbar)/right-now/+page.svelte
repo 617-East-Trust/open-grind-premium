@@ -12,6 +12,7 @@
 	} from "phosphor-svelte";
 	import { toast } from "svelte-sonner";
 
+	import PullToRefresh from "$lib/components/PullToRefresh.svelte";
 	import { Button } from "$lib/components/ui/button";
 	import {
 		formatRightNowRemaining,
@@ -45,9 +46,9 @@
 		void rightNowState.load({ force: true });
 	});
 
-	async function onRefresh() {
+	async function onRefresh(options: { silent?: boolean } = {}) {
 		await rightNowState.refresh();
-		if (!rightNowState.error) {
+		if (!rightNowState.error && !options.silent) {
 			toast.success(
 				rightNowState.items.length
 					? `Updated · ${rightNowState.items.length} nearby`
@@ -57,6 +58,11 @@
 	}
 </script>
 
+<PullToRefresh
+	refreshing={rightNowState.loading}
+	disabled={!rightNowState.geohash && rightNowState.loadedOnce}
+	onrefresh={() => onRefresh({ silent: true })}
+>
 <div class="flex flex-col flex-1 min-h-0">
 	<header
 		class="sticky top-0 z-10 px-4 pt-3 pb-2 bg-background/90 backdrop-blur-md border-b border-border/60"
@@ -230,6 +236,7 @@
 		{/if}
 	</div>
 </div>
+</PullToRefresh>
 
 <CreateRightNowSheet
 	bind:open={rightNowState.composeOpen}
