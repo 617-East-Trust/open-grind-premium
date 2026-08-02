@@ -362,9 +362,10 @@ pub struct UploadImageResult {
 }
 
 /// Upload a base64-encoded image to Grindr chat media.
-/// Tries `/v6/chat/media/upload` first (newer clients), falls back to `/v5`.
-/// Full device-key signing (`X-Key-Id`/`X-Sig`) is in open-grind's `grindr`
-/// crate path — here we reuse session auth + UA fingerprint headers.
+///
+/// Prefer signed `POST /v6/chat/media/upload` (device-key ECDSA path, same
+/// protocol as open-grind's `grindr` crate). Fall back to unsigned
+/// `POST /v5/chat/media/upload` when registration/signing is unavailable.
 #[tauri::command]
 pub async fn upload_image(
     state: tauri::State<'_, AppState>,
@@ -378,59 +379,84 @@ pub async fn upload_image(
     let bytes = STANDARD
         .decode(&image_base64)
         .map_err(|e| AppError::Http(format!("Failed to decode image base64: {e}")))?;
-    let authorization = state
-        .client()?
+    let client = state.client()?;
+    let authorization = client
         .authorization_header()
         .await
         .ok_or_else(|| AppError::Auth("Not logged in".to_owned()))?;
-    let fp = state.client()?.fingerprint().await;
+    let fp = client.fingerprint().await;
+    let user_id = client
+        .active_profile_id()
+        .await
+        .ok_or_else(|| AppError::Auth("No active profile".to_owned()))?;
 
-    let endpoints = [
-        format!("{BASE_URL}/v6/chat/media/upload?takenOnGrindr=false"),
-        format!("{BASE_URL}/v5/chat/media/upload?takenOnGrindr=false"),
-    ];
-
-    let mut last_status = 0u16;
-    let mut last_body = String::new();
-
-    for url in endpoints {
-        let response = fp
-            .http
-            .post(&url)
-            .header("Authorization", &authorization)
-            .header("User-Agent", &fp.user_agent)
-            // L-Grindr-Roles intentionally omitted — see headers::grindr_roles_header_value
-            .header("Content-Type", &mime_type)
-            .body(bytes.clone())
-            .send()
-            .await;
-
-        match response {
-            Ok(resp) => {
-                last_status = resp.status().as_u16();
-                last_body = resp.text().await.unwrap_or_default();
-                if (200..300).contains(&last_status) {
-                    return Ok(UploadImageResult {
-                        status: last_status,
-                        body: last_body,
-                    });
+    // --- Signed v6 path (device-key) --------------------------------------
+    match super::signing::ensure_device_signing_key(
+        &fp.http,
+        &authorization,
+        &fp.user_agent,
+        &fp.device,
+        &user_id,
+    )
+    .await
+    {
+        Ok((android_id, key)) => {
+            match super::signing::build_upload_signing_headers(&key, &android_id, &bytes) {
+                Ok(sig_headers) => {
+                    let mut req = fp
+                        .http
+                        .post(format!(
+                            "{BASE_URL}/v6/chat/media/upload?takenOnGrindr=false"
+                        ))
+                        .header("Authorization", &authorization)
+                        .header("User-Agent", &fp.user_agent)
+                        .header("Content-Type", &mime_type);
+                    for (name, value) in &sig_headers {
+                        req = req.header(name.as_str(), value.as_str());
+                    }
+                    match req.body(bytes.clone()).send().await {
+                        Ok(resp) => {
+                            let status = resp.status().as_u16();
+                            let body = resp.text().await.unwrap_or_default();
+                            if (200..300).contains(&status) {
+                                return Ok(UploadImageResult { status, body });
+                            }
+                            tracing::warn!(
+                                status,
+                                body = %body.chars().take(160).collect::<String>(),
+                                "signed v6 upload rejected; falling back to v5"
+                            );
+                        }
+                        Err(e) => {
+                            tracing::warn!(error = %e, "signed v6 upload request failed");
+                        }
+                    }
                 }
-                if last_status == 401 || last_status == 403 {
-                    break;
+                Err(e) => {
+                    tracing::warn!(error = %e, "could not build upload signing headers");
                 }
             }
-            Err(e) => {
-                tracing::warn!(error = %e, url = %url, "chat media upload request failed");
-                last_body = e.to_string();
-                last_status = 0;
-            }
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "device-key registration unavailable; using unsigned v5");
         }
     }
 
-    Ok(UploadImageResult {
-        status: if last_status == 0 { 502 } else { last_status },
-        body: last_body,
-    })
+    // --- Unsigned v5 fallback --------------------------------------------
+    let response = fp
+        .http
+        .post(format!(
+            "{BASE_URL}/v5/chat/media/upload?takenOnGrindr=false"
+        ))
+        .header("Authorization", &authorization)
+        .header("User-Agent", &fp.user_agent)
+        .header("Content-Type", &mime_type)
+        .body(bytes)
+        .send()
+        .await?;
+    let status = response.status().as_u16();
+    let body = response.text().await.unwrap_or_default();
+    Ok(UploadImageResult { status, body })
 }
 
 /// Validates that the host's registered domain is `grindr.com` or `grindr.mobi`.

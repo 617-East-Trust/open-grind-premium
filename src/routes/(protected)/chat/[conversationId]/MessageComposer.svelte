@@ -3,6 +3,7 @@
 		ImageIcon,
 		MicrophoneIcon,
 		PaperPlaneRightIcon,
+		PlusIcon,
 		SpinnerGap,
 	} from "phosphor-svelte";
 	import { toast } from "svelte-sonner";
@@ -18,17 +19,20 @@
 	import { Button } from "$lib/components/ui/button";
 	import { Textarea } from "$lib/components/ui/textarea";
 	import type { Message } from "$lib/model/message";
+	import MediaDrawer from "./media-drawer/MediaDrawer.svelte";
 
-	let { onSend }: { onSend: (params: Message) => void | Promise<void> } =
-		$props();
+	let {
+		conversationId,
+		onSend,
+	}: {
+		conversationId: string;
+		onSend: (params: Message) => void | Promise<void>;
+	} = $props();
 
 	let textContent = $state("");
 	let uploading = $state(false);
-	let uploadProgress = $state("");
-	let fileInput: HTMLInputElement | null = $state(null);
-
-	const MAX_FILES = 8;
-	const MAX_BYTES = 12 * 1024 * 1024;
+	let drawerOpen = $state(false);
+	let quickFileInput: HTMLInputElement | null = $state(null);
 
 	async function onSubmit() {
 		const text = textContent.trim();
@@ -42,71 +46,51 @@
 		}
 	}
 
-	async function sendOneImage(file: File): Promise<void> {
-		if (!file.type.startsWith("image/")) {
-			throw new Error(`${file.name}: not an image`);
-		}
-		if (file.size > MAX_BYTES) {
-			throw new Error(`${file.name}: too large (max 12MB)`);
-		}
-		const uploaded = await uploadChatMediaFromFile(file);
-		const dims = await readImageDims(file);
-		const hash = asPublicMediaHash(
-			uploaded.mediaHash || imageHashFromUrl(uploaded.url),
-		);
-		const url =
-			uploaded.url && uploaded.url.startsWith("http")
-				? uploaded.url
-				: `https://cdns.grindr.com/images/thumb/320x320/${hash}`;
-		await onSend({
-			type: "Image",
-			body: {
-				mediaId: uploaded.mediaId,
-				width: dims.width,
-				height: dims.height,
-				url,
-				imageHash: hash,
-				takenOnGrindr: false,
-				createdAt: Date.now(),
-			},
-		});
-	}
-
-	async function onPickImage(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const files = Array.from(input.files ?? []);
-		input.value = "";
-		if (files.length === 0) return;
-
-		const batch = files.slice(0, MAX_FILES);
-		if (files.length > MAX_FILES) {
-			toast.message(`Sending first ${MAX_FILES} photos`);
-		}
-
+	async function quickSendFiles(files: FileList | File[]) {
+		const list = Array.from(files)
+			.filter((f) => f.type.startsWith("image/"))
+			.slice(0, 8);
+		if (list.length === 0) return;
 		uploading = true;
 		let sent = 0;
-		let failed = 0;
 		try {
-			for (let i = 0; i < batch.length; i++) {
-				uploadProgress = `${i + 1}/${batch.length}`;
-				try {
-					await sendOneImage(batch[i]!);
-					sent += 1;
-				} catch (error) {
-					console.error(error);
-					failed += 1;
-				}
+			for (const file of list) {
+				if (file.size > 12 * 1024 * 1024) continue;
+				const uploaded = await uploadChatMediaFromFile(file);
+				const dims = await readImageDims(file);
+				const hash = asPublicMediaHash(
+					uploaded.mediaHash || imageHashFromUrl(uploaded.url),
+				);
+				const url =
+					uploaded.url && uploaded.url.startsWith("http")
+						? uploaded.url
+						: `https://cdns.grindr.com/images/thumb/320x320/${hash}`;
+				await onSend({
+					type: "Image",
+					body: {
+						mediaId: uploaded.mediaId,
+						width: dims.width,
+						height: dims.height,
+						url,
+						imageHash: hash,
+						takenOnGrindr: false,
+						createdAt: Date.now(),
+					},
+				});
+				sent += 1;
 			}
-			if (sent > 0 && failed === 0) {
+			if (sent > 0) {
 				toast.success(sent === 1 ? "Photo sent" : `${sent} photos sent`);
-			} else if (sent > 0) {
-				toast.message(`Sent ${sent}, failed ${failed}`);
 			} else {
 				toast.error("Upload failed");
 			}
+		} catch (error) {
+			console.error(error);
+			toast.error(
+				error instanceof Error ? error.message.slice(0, 120) : "Upload failed",
+			);
 		} finally {
 			uploading = false;
-			uploadProgress = "";
 		}
 	}
 
@@ -137,16 +121,20 @@
 	}}
 >
 	<input
-		bind:this={fileInput}
+		bind:this={quickFileInput}
 		type="file"
 		accept="image/*"
 		multiple
 		class="hidden"
-		onchange={(e) => void onPickImage(e)}
+		onchange={(e) => {
+			const input = e.currentTarget as HTMLInputElement;
+			if (input.files) void quickSendFiles(input.files);
+			input.value = "";
+		}}
 	/>
 	<Textarea
 		placeholder="Say something..."
-		class="min-h-9.5 rounded-[20px] shrink-0 max-h-31.5 py-2 pr-18 h-fit! leading-5 placeholder-shown:truncate"
+		class="min-h-9.5 rounded-[20px] shrink-0 max-h-31.5 py-2 pr-24 h-fit! leading-5 placeholder-shown:truncate"
 		disabled={uploading}
 		onkeydown={(
 			event: KeyboardEvent & {
@@ -165,15 +153,23 @@
 			type="button"
 			variant="ghost"
 			size="icon"
-			class="size-9 cursor-pointer p-2 relative"
+			class="size-9 cursor-pointer p-2"
 			disabled={uploading}
-			aria-label="Send photo"
-			onclick={() => fileInput?.click()}
+			aria-label="Open media drawer"
+			onclick={() => (drawerOpen = true)}
+		>
+			<PlusIcon weight="bold" class="size-4.5 text-muted-foreground" />
+		</Button>
+		<Button
+			type="button"
+			variant="ghost"
+			size="icon"
+			class="size-9 cursor-pointer p-2"
+			disabled={uploading}
+			aria-label="Quick send photo"
+			onclick={() => quickFileInput?.click()}
 		>
 			{#if uploading}
-				<span class="absolute -top-1 inset-x-0 text-[9px] text-center text-muted-foreground">
-					{uploadProgress}
-				</span>
 				<SpinnerGap class="size-4.5 animate-spin text-muted-foreground" />
 			{:else}
 				<ImageIcon weight="fill" class="size-4.5 text-muted-foreground" />
@@ -221,6 +217,8 @@
 		{/if}
 	</div>
 </form>
+
+<MediaDrawer bind:open={drawerOpen} {conversationId} {onSend} />
 
 <style lang="postcss">
 	@reference "$layout";

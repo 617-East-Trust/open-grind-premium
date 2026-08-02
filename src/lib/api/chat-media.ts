@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import z from "zod";
 
 import { toBase64 } from "$lib/base64";
+import { type DrawerMedia, saveMediaToDrawer } from "$lib/api/drawer";
 
 const mediaUploadResponseSchema = z.object({
 	mediaId: z.coerce.number().int(),
@@ -12,11 +13,11 @@ const mediaUploadResponseSchema = z.object({
 export type MediaUploadResponse = z.infer<typeof mediaUploadResponseSchema>;
 
 function imageHashFromUrl(url: string): string {
-	// Grindr CDN URLs end with /{hash} or include the hash segment.
+	const match = /([0-9a-f]{64}|[0-9a-f]{40})/i.exec(url);
+	if (match?.[1]) return match[1];
 	const parts = url.split("/").filter(Boolean);
 	const last = parts.at(-1) ?? "";
-	const cleaned = last.split("?")[0] ?? "";
-	return cleaned.length > 0 ? cleaned : last;
+	return last.split("?")[0] ?? "";
 }
 
 /** Coerce whatever the upload returns into a public (40-hex) media hash for Message typing. */
@@ -30,8 +31,7 @@ export function asPublicMediaHash(raw: string | null | undefined): string {
 }
 
 /**
- * Upload image bytes via the Tauri `upload_image` command
- * (`POST /v5/chat/media/upload`) and normalize the response.
+ * Upload image bytes via Tauri `upload_image` (signed v6 → unsigned v5).
  */
 export async function uploadChatMedia(
 	bytes: Uint8Array,
@@ -52,15 +52,24 @@ export async function uploadChatMedia(
 	try {
 		parsed = JSON.parse(raw.body);
 	} catch {
-		throw new Error(`Media upload returned non-JSON: ${raw.body.slice(0, 120)}`);
+		throw new Error(
+			`Media upload returned non-JSON: ${raw.body.slice(0, 120)}`,
+		);
 	}
 
 	const rec = (parsed ?? {}) as Record<string, unknown>;
+	const nested = (rec.data ?? {}) as Record<string, unknown>;
 	const mediaId =
-		rec.mediaId ?? rec.media_id ?? rec.id ?? (rec as { data?: { mediaId?: unknown } }).data?.mediaId;
-	const url = String(rec.url ?? rec.mediaUrl ?? rec.fullImageUrl ?? "");
+		rec.mediaId ?? rec.media_id ?? rec.id ?? nested.mediaId ?? nested.media_id;
+	const url = String(
+		rec.url ?? rec.mediaUrl ?? rec.fullImageUrl ?? nested.url ?? "",
+	);
 	const mediaHash = String(
-		rec.mediaHash ?? rec.media_hash ?? rec.imageHash ?? (url ? imageHashFromUrl(url) : ""),
+		rec.mediaHash ??
+			rec.media_hash ??
+			rec.imageHash ??
+			nested.mediaHash ??
+			(url ? imageHashFromUrl(url) : ""),
 	);
 
 	return mediaUploadResponseSchema.parse({
@@ -77,6 +86,23 @@ export async function uploadChatMediaFromFile(
 	const bytes = new Uint8Array(buffer);
 	const contentType = file.type || "image/jpeg";
 	return uploadChatMedia(bytes, contentType);
+}
+
+/** Upload + put into conversation media drawer. */
+export async function addMediaToDrawer(file: File): Promise<DrawerMedia> {
+	const uploaded = await uploadChatMediaFromFile(file);
+	await saveMediaToDrawer(uploaded.mediaId);
+	return {
+		id: uploaded.mediaId,
+		url:
+			uploaded.url && uploaded.url.startsWith("http")
+				? uploaded.url
+				: `https://cdns.grindr.com/images/thumb/320x320/${asPublicMediaHash(uploaded.mediaHash)}`,
+		contentType: file.type || "image/jpeg",
+		createdTs: Date.now(),
+		used: false,
+		takenOnGrindr: false,
+	};
 }
 
 export { imageHashFromUrl };

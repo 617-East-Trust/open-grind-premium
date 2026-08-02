@@ -318,6 +318,16 @@ export async function fetchRest(
 				console.log(this.json());
 				return this.jsonParsed(schema);
 			},
+			assertOk() {
+				if (status < 200 || status >= 300) {
+					const bodyText = new TextDecoder().decode(responseBody);
+					throw new ApiError({
+						message: `API request failed with status ${status}`,
+						request: requestInfo,
+						response: { status, body: bodyText },
+					});
+				}
+			},
 		};
 	} catch (error) {
 		if (error instanceof ApiError) throw error;

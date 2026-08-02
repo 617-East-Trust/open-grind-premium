@@ -14,6 +14,9 @@
 	import { toast } from "svelte-sonner";
 	import L from "leaflet";
 	import "leaflet/dist/leaflet.css";
+	import "leaflet.markercluster";
+	import "leaflet.markercluster/dist/MarkerCluster.css";
+	import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 	import { MapPinIcon, SpinnerGap } from "phosphor-svelte";
 
 	import { getPreferences } from "$lib/app-data/preferences.svelte";
@@ -28,19 +31,16 @@
 	/** Cap ring radius so distant free-tier results don't explode the map. */
 	const MAX_RING_M = 8_000;
 	const MIN_RING_M = 40;
-	/** Below this zoom, pins collapse into grid-cell clusters. */
-	const CLUSTER_ZOOM_BELOW = 14;
 
 	let mapEl: HTMLDivElement;
 	let map: L.Map | null = null;
-	let markersLayer: L.LayerGroup | null = null;
+	let markersLayer: L.MarkerClusterGroup | null = null;
 	let youLayer: L.LayerGroup | null = null;
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let center = $state<{ lat: number; lon: number } | null>(null);
 	let geohashErr = $state<{ latErr: number; lonErr: number } | null>(null);
 	let markerCount = $state(0);
-	let clustered = $state(false);
 	let didFit = false;
 
 	function metersToLat(m: number): number {
@@ -108,24 +108,6 @@
 			iconSize: [40, 40],
 			iconAnchor: [20, 20],
 		});
-	}
-
-	function createClusterIcon(count: number): L.DivIcon {
-		const size = count >= 20 ? 48 : count >= 8 ? 42 : 36;
-		return L.divIcon({
-			className: "map-cluster-icon",
-			html: `<div class="map-cluster" style="width:${size}px;height:${size}px">${count}</div>`,
-			iconSize: [size, size],
-			iconAnchor: [size / 2, size / 2],
-		});
-	}
-
-	/** Cell size in degrees — coarser when zoomed out. */
-	function clusterCellSizeDeg(zoom: number): number {
-		if (zoom <= 11) return 0.04;
-		if (zoom <= 12) return 0.02;
-		if (zoom <= 13) return 0.01;
-		return 0.005;
 	}
 
 	function renderYou() {
@@ -214,96 +196,27 @@
 
 		const placed = placedProfiles();
 		markerCount = placed.length;
-		const zoom = map.getZoom();
-		const useClusters = zoom < CLUSTER_ZOOM_BELOW;
-		clustered = useClusters;
-
 		const bounds: L.LatLngExpression[] = [[center.lat, center.lon]];
 
-		if (useClusters) {
-			const cell = clusterCellSizeDeg(zoom);
-			const buckets = new Map<
-				string,
-				{ lat: number; lon: number; profiles: FullGridProfile[] }
-			>();
-			for (const p of placed) {
-				const key = `${Math.floor(p.lat / cell)}:${Math.floor(p.lon / cell)}`;
-				const existing = buckets.get(key);
-				if (existing) {
-					existing.profiles.push(p.profile);
-					// Running average for cluster center
-					const n = existing.profiles.length;
-					existing.lat = existing.lat + (p.lat - existing.lat) / n;
-					existing.lon = existing.lon + (p.lon - existing.lon) / n;
-				} else {
-					buckets.set(key, {
-						lat: p.lat,
-						lon: p.lon,
-						profiles: [p.profile],
-					});
-				}
-				bounds.push([p.lat, p.lon]);
-			}
-
-			for (const bucket of buckets.values()) {
-				if (bucket.profiles.length === 1) {
-					const profile = bucket.profiles[0]!;
-					const marker = L.marker([bucket.lat, bucket.lon], {
-						icon: createAvatarIcon(profile),
-					});
-					marker.bindTooltip(profile.displayName ?? "Profile", {
-						direction: "top",
-						offset: [0, -14],
-					});
-					marker.on("click", () => goto(`/profile/${profile.id}`));
-					marker.addTo(markersLayer!);
-				} else {
-					const marker = L.marker([bucket.lat, bucket.lon], {
-						icon: createClusterIcon(bucket.profiles.length),
-						zIndexOffset: 1000 + bucket.profiles.length,
-					});
-					const names = bucket.profiles
-						.slice(0, 4)
-						.map((p) => p.displayName ?? "Profile")
-						.join(", ");
-					const more =
-						bucket.profiles.length > 4
-							? ` +${bucket.profiles.length - 4}`
-							: "";
-					marker.bindTooltip(
-						`${bucket.profiles.length} nearby · ${names}${more}`,
-						{ direction: "top", offset: [0, -14] },
-					);
-					marker.on("click", () => {
-						// Zoom into cluster
-						map?.setView([bucket.lat, bucket.lon], Math.min(18, zoom + 2), {
-							animate: true,
-						});
-					});
-					marker.addTo(markersLayer!);
-				}
-			}
-		} else {
-			for (const { profile, lat, lon } of placed) {
-				bounds.push([lat, lon]);
-				const marker = L.marker([lat, lon], {
-					icon: createAvatarIcon(profile),
-					zIndexOffset: Math.max(
-						0,
-						5000 - Math.round(profile.distance ?? 5000),
-					),
-				});
-				const distLabel = formatDistance(profile.distance);
-				const tip = [profile.displayName ?? "Profile", distLabel]
-					.filter(Boolean)
-					.join(" · ");
-				marker.bindTooltip(tip, {
-					direction: "top",
-					offset: [0, -14],
-				});
-				marker.on("click", () => goto(`/profile/${profile.id}`));
-				marker.addTo(markersLayer!);
-			}
+		for (const { profile, lat, lon } of placed) {
+			bounds.push([lat, lon]);
+			const marker = L.marker([lat, lon], {
+				icon: createAvatarIcon(profile),
+				zIndexOffset: Math.max(
+					0,
+					5000 - Math.round(profile.distance ?? 5000),
+				),
+			});
+			const distLabel = formatDistance(profile.distance);
+			const tip = [profile.displayName ?? "Profile", distLabel]
+				.filter(Boolean)
+				.join(" · ");
+			marker.bindTooltip(tip, {
+				direction: "top",
+				offset: [0, -14],
+			});
+			marker.on("click", () => goto(`/profile/${profile.id}`));
+			markersLayer.addLayer(marker);
 		}
 
 		// Fit once on first meaningful load
@@ -375,14 +288,25 @@
 			L.control.zoom({ position: "bottomright" }).addTo(map);
 
 			youLayer = L.layerGroup().addTo(map);
-			markersLayer = L.layerGroup().addTo(map);
+			markersLayer = L.markerClusterGroup({
+				showCoverageOnHover: false,
+				maxClusterRadius: 48,
+				spiderfyOnMaxZoom: true,
+				disableClusteringAtZoom: 16,
+				iconCreateFunction(cluster) {
+					const count = cluster.getChildCount();
+					const size = count >= 20 ? 48 : count >= 8 ? 42 : 36;
+					return L.divIcon({
+						html: `<div class="map-cluster" style="width:${size}px;height:${size}px">${count}</div>`,
+						className: "map-cluster-icon",
+						iconSize: L.point(size, size),
+					});
+				},
+			});
+			map.addLayer(markersLayer);
 
 			renderYou();
 			renderMarkers();
-
-			map.on("zoomend", () => {
-				renderMarkers();
-			});
 
 			// Resolve partials so map gets full distance + photos
 			for (let i = 0; i < gridState.partialBatches.length; i++) {
@@ -443,8 +367,7 @@
 		<div
 			class="absolute top-3 left-3 z-10 rounded-full border border-border bg-card/90 px-3 py-1.5 text-[11px] text-muted-foreground shadow backdrop-blur-sm"
 		>
-			{markerCount} nearby ·
-			{clustered ? " clustered · " : " "}distance rings (not GPS)
+			{markerCount} nearby · markercluster · distance rings (not GPS)
 		</div>
 	{/if}
 

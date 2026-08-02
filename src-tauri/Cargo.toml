@@ -52,6 +52,12 @@ keyring-core = "0.7.2"
 dirs = "6.0.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+# Device-key ECDSA-P256 signing for /v6 chat media uploads (Open Grind protocol)
+p256 = { version = "0.13", features = ["ecdsa", "pkcs8"] }
+ecdsa = { version = "0.16", features = ["der"] }
+sha2 = "0.10"
+rand_core = "0.6"
+pkcs8 = { version = "0.10", features = ["alloc"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 apple-native-keyring-store = { version = "0.2.3", features = ["keychain", "protected"], optional = true }

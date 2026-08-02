@@ -58,6 +58,7 @@
 <Card.Content class="flex flex-col flex-1 pb-2 px-0 min-h-0">
 	<MessagesList {conversationState} />
 	<MessageComposer
+		{conversationId}
 		onSend={(message: Message) => conversationState.send(message)}
 	/>
 </Card.Content>
