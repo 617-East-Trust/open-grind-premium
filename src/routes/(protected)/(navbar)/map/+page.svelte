@@ -18,6 +18,7 @@
 
 	import { getPreferences } from "$lib/app-data/preferences.svelte";
 	import { decodeGeohash } from "$lib/model/geohash";
+	import { setGridOrder } from "$lib/stores/grid-order.svelte";
 	import type { FullGridProfile } from "../(root)/grid";
 	import { gridState } from "../(root)/grid-state.svelte";
 
@@ -27,6 +28,8 @@
 	/** Cap ring radius so distant free-tier results don't explode the map. */
 	const MAX_RING_M = 8_000;
 	const MIN_RING_M = 40;
+	/** Below this zoom, pins collapse into grid-cell clusters. */
+	const CLUSTER_ZOOM_BELOW = 14;
 
 	let mapEl: HTMLDivElement;
 	let map: L.Map | null = null;
@@ -37,6 +40,8 @@
 	let center = $state<{ lat: number; lon: number } | null>(null);
 	let geohashErr = $state<{ latErr: number; lonErr: number } | null>(null);
 	let markerCount = $state(0);
+	let clustered = $state(false);
+	let didFit = false;
 
 	function metersToLat(m: number): number {
 		return m / METERS_PER_DEG_LAT;
@@ -105,6 +110,24 @@
 		});
 	}
 
+	function createClusterIcon(count: number): L.DivIcon {
+		const size = count >= 20 ? 48 : count >= 8 ? 42 : 36;
+		return L.divIcon({
+			className: "map-cluster-icon",
+			html: `<div class="map-cluster" style="width:${size}px;height:${size}px">${count}</div>`,
+			iconSize: [size, size],
+			iconAnchor: [size / 2, size / 2],
+		});
+	}
+
+	/** Cell size in degrees — coarser when zoomed out. */
+	function clusterCellSizeDeg(zoom: number): number {
+		if (zoom <= 11) return 0.04;
+		if (zoom <= 12) return 0.02;
+		if (zoom <= 13) return 0.01;
+		return 0.005;
+	}
+
 	function renderYou() {
 		if (!map || !youLayer || !center) return;
 		youLayer.clearLayers();
@@ -156,24 +179,24 @@
 			.addTo(youLayer);
 	}
 
-	function renderMarkers() {
-		if (!map || !markersLayer || !center) return;
-		markersLayer.clearLayers();
-
+	function placedProfiles(): Array<{
+		profile: FullGridProfile;
+		lat: number;
+		lon: number;
+	}> {
 		const fullProfiles = gridState.items.filter(
 			(p): p is FullGridProfile => p.type === "full",
 		);
-
-		// Sort by distance so rank-based golden angle is stable and closer first
 		const sorted = [...fullProfiles].sort((a, b) => {
 			const da = a.distance ?? Number.POSITIVE_INFINITY;
 			const db = b.distance ?? Number.POSITIVE_INFINITY;
 			return da - db;
 		});
+		// Keep swipe order in sync when browsing from map
+		setGridOrder(sorted.map((p) => p.id));
 
-		const bounds: L.LatLngExpression[] = [[center.lat, center.lon]];
-
-		sorted.forEach((profile, rank) => {
+		if (!center) return [];
+		return sorted.map((profile, rank) => {
 			const [lat, lon] = ringPosition(
 				center!.lat,
 				center!.lon,
@@ -181,43 +204,119 @@
 				profile.id,
 				rank,
 			);
-			bounds.push([lat, lon]);
-
-			const marker = L.marker([lat, lon], {
-				icon: createAvatarIcon(profile),
-				// Closer profiles sit above farther ones
-				zIndexOffset: Math.max(0, 5000 - Math.round(profile.distance ?? 5000)),
-			});
-
-			const distLabel = formatDistance(profile.distance);
-			const tip = [profile.displayName ?? "Profile", distLabel]
-				.filter(Boolean)
-				.join(" · ");
-
-			marker.bindTooltip(tip, {
-				direction: "top",
-				offset: [0, -14],
-			});
-
-			marker.on("click", () => {
-				goto(`/profile/${profile.id}`);
-			});
-
-			marker.addTo(markersLayer!);
+			return { profile, lat, lon };
 		});
+	}
 
-		markerCount = sorted.length;
+	function renderMarkers() {
+		if (!map || !markersLayer || !center) return;
+		markersLayer.clearLayers();
 
-		// Fit once we have a few pins (don't jump constantly on every partial load)
-		if (sorted.length >= 3 && sorted.length <= 40) {
+		const placed = placedProfiles();
+		markerCount = placed.length;
+		const zoom = map.getZoom();
+		const useClusters = zoom < CLUSTER_ZOOM_BELOW;
+		clustered = useClusters;
+
+		const bounds: L.LatLngExpression[] = [[center.lat, center.lon]];
+
+		if (useClusters) {
+			const cell = clusterCellSizeDeg(zoom);
+			const buckets = new Map<
+				string,
+				{ lat: number; lon: number; profiles: FullGridProfile[] }
+			>();
+			for (const p of placed) {
+				const key = `${Math.floor(p.lat / cell)}:${Math.floor(p.lon / cell)}`;
+				const existing = buckets.get(key);
+				if (existing) {
+					existing.profiles.push(p.profile);
+					// Running average for cluster center
+					const n = existing.profiles.length;
+					existing.lat = existing.lat + (p.lat - existing.lat) / n;
+					existing.lon = existing.lon + (p.lon - existing.lon) / n;
+				} else {
+					buckets.set(key, {
+						lat: p.lat,
+						lon: p.lon,
+						profiles: [p.profile],
+					});
+				}
+				bounds.push([p.lat, p.lon]);
+			}
+
+			for (const bucket of buckets.values()) {
+				if (bucket.profiles.length === 1) {
+					const profile = bucket.profiles[0]!;
+					const marker = L.marker([bucket.lat, bucket.lon], {
+						icon: createAvatarIcon(profile),
+					});
+					marker.bindTooltip(profile.displayName ?? "Profile", {
+						direction: "top",
+						offset: [0, -14],
+					});
+					marker.on("click", () => goto(`/profile/${profile.id}`));
+					marker.addTo(markersLayer!);
+				} else {
+					const marker = L.marker([bucket.lat, bucket.lon], {
+						icon: createClusterIcon(bucket.profiles.length),
+						zIndexOffset: 1000 + bucket.profiles.length,
+					});
+					const names = bucket.profiles
+						.slice(0, 4)
+						.map((p) => p.displayName ?? "Profile")
+						.join(", ");
+					const more =
+						bucket.profiles.length > 4
+							? ` +${bucket.profiles.length - 4}`
+							: "";
+					marker.bindTooltip(
+						`${bucket.profiles.length} nearby · ${names}${more}`,
+						{ direction: "top", offset: [0, -14] },
+					);
+					marker.on("click", () => {
+						// Zoom into cluster
+						map?.setView([bucket.lat, bucket.lon], Math.min(18, zoom + 2), {
+							animate: true,
+						});
+					});
+					marker.addTo(markersLayer!);
+				}
+			}
+		} else {
+			for (const { profile, lat, lon } of placed) {
+				bounds.push([lat, lon]);
+				const marker = L.marker([lat, lon], {
+					icon: createAvatarIcon(profile),
+					zIndexOffset: Math.max(
+						0,
+						5000 - Math.round(profile.distance ?? 5000),
+					),
+				});
+				const distLabel = formatDistance(profile.distance);
+				const tip = [profile.displayName ?? "Profile", distLabel]
+					.filter(Boolean)
+					.join(" · ");
+				marker.bindTooltip(tip, {
+					direction: "top",
+					offset: [0, -14],
+				});
+				marker.on("click", () => goto(`/profile/${profile.id}`));
+				marker.addTo(markersLayer!);
+			}
+		}
+
+		// Fit once on first meaningful load
+		if (!didFit && placed.length >= 3 && placed.length <= 60) {
 			try {
 				map.fitBounds(L.latLngBounds(bounds), {
 					padding: [40, 40],
 					maxZoom: 15,
 					animate: false,
 				});
+				didFit = true;
 			} catch {
-				/* ignore fit errors */
+				/* ignore */
 			}
 		}
 	}
@@ -281,6 +380,10 @@
 			renderYou();
 			renderMarkers();
 
+			map.on("zoomend", () => {
+				renderMarkers();
+			});
+
 			// Resolve partials so map gets full distance + photos
 			for (let i = 0; i < gridState.partialBatches.length; i++) {
 				void gridState.loadBatch(i);
@@ -340,7 +443,8 @@
 		<div
 			class="absolute top-3 left-3 z-10 rounded-full border border-border bg-card/90 px-3 py-1.5 text-[11px] text-muted-foreground shadow backdrop-blur-sm"
 		>
-			{markerCount} nearby · distance rings (not GPS)
+			{markerCount} nearby ·
+			{clustered ? " clustered · " : " "}distance rings (not GPS)
 		</div>
 	{/if}
 
@@ -377,6 +481,24 @@
 		font-size: 14px;
 		font-weight: 600;
 		line-height: 1;
+	}
+
+	:global(.map-cluster-icon) {
+		background: transparent;
+		border: none;
+	}
+
+	:global(.map-cluster) {
+		border-radius: 9999px;
+		background: hsl(var(--accent));
+		color: hsl(var(--accent-foreground));
+		border: 2px solid hsl(var(--background));
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 13px;
+		font-weight: 700;
 	}
 
 	:global(.leaflet-tooltip) {

@@ -361,7 +361,10 @@ pub struct UploadImageResult {
     pub body: String,
 }
 
-/// Upload a base64-encoded image to the Grindr chat media endpoint.
+/// Upload a base64-encoded image to Grindr chat media.
+/// Tries `/v6/chat/media/upload` first (newer clients), falls back to `/v5`.
+/// Full device-key signing (`X-Key-Id`/`X-Sig`) is in open-grind's `grindr`
+/// crate path — here we reuse session auth + UA fingerprint headers.
 #[tauri::command]
 pub async fn upload_image(
     state: tauri::State<'_, AppState>,
@@ -381,18 +384,53 @@ pub async fn upload_image(
         .await
         .ok_or_else(|| AppError::Auth("Not logged in".to_owned()))?;
     let fp = state.client()?.fingerprint().await;
-    let response = fp
-        .http
-        .post(format!("{BASE_URL}/v5/chat/media/upload?takenOnGrindr=false"))
-        .header("Authorization", &authorization)
-        // L-Grindr-Roles intentionally omitted — see headers::grindr_roles_header_value
-        .header("Content-Type", &mime_type)
-        .body(bytes)
-        .send()
-        .await?;
-    let status = response.status().as_u16();
-    let body = response.text().await.unwrap_or_default();
-    Ok(UploadImageResult { status, body })
+
+    let endpoints = [
+        format!("{BASE_URL}/v6/chat/media/upload?takenOnGrindr=false"),
+        format!("{BASE_URL}/v5/chat/media/upload?takenOnGrindr=false"),
+    ];
+
+    let mut last_status = 0u16;
+    let mut last_body = String::new();
+
+    for url in endpoints {
+        let response = fp
+            .http
+            .post(&url)
+            .header("Authorization", &authorization)
+            .header("User-Agent", &fp.user_agent)
+            // L-Grindr-Roles intentionally omitted — see headers::grindr_roles_header_value
+            .header("Content-Type", &mime_type)
+            .body(bytes.clone())
+            .send()
+            .await;
+
+        match response {
+            Ok(resp) => {
+                last_status = resp.status().as_u16();
+                last_body = resp.text().await.unwrap_or_default();
+                if (200..300).contains(&last_status) {
+                    return Ok(UploadImageResult {
+                        status: last_status,
+                        body: last_body,
+                    });
+                }
+                if last_status == 401 || last_status == 403 {
+                    break;
+                }
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, url = %url, "chat media upload request failed");
+                last_body = e.to_string();
+                last_status = 0;
+            }
+        }
+    }
+
+    Ok(UploadImageResult {
+        status: if last_status == 0 { 502 } else { last_status },
+        body: last_body,
+    })
 }
 
 /// Validates that the host's registered domain is `grindr.com` or `grindr.mobi`.

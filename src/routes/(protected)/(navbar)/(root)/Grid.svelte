@@ -4,6 +4,7 @@
 
 	import ApiErrorDisplay from "$lib/components/ApiErrorDisplay.svelte";
 	import { Button } from "$lib/components/ui/button";
+	import { setGridOrder } from "$lib/stores/grid-order.svelte";
 	import EmptyGrid from "./EmptyGrid.svelte";
 	import { gridState } from "./grid-state.svelte";
 	import ProfileMiniCard from "./ProfileMiniCard.svelte";
@@ -17,6 +18,11 @@
 	} = $props();
 
 	const gridProfiles = $derived(uniqBy(gridState.items, "id"));
+
+	// Publish order so profile swipe can navigate next/prev
+	$effect(() => {
+		setGridOrder(gridProfiles.map((item) => item.id));
+	});
 
 	$effect.pre(() => {
 		gridState.load(geohash);

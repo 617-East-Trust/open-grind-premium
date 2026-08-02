@@ -24,7 +24,11 @@
 
 	let textContent = $state("");
 	let uploading = $state(false);
+	let uploadProgress = $state("");
 	let fileInput: HTMLInputElement | null = $state(null);
+
+	const MAX_FILES = 8;
+	const MAX_BYTES = 12 * 1024 * 1024;
 
 	async function onSubmit() {
 		const text = textContent.trim();
@@ -38,51 +42,71 @@
 		}
 	}
 
+	async function sendOneImage(file: File): Promise<void> {
+		if (!file.type.startsWith("image/")) {
+			throw new Error(`${file.name}: not an image`);
+		}
+		if (file.size > MAX_BYTES) {
+			throw new Error(`${file.name}: too large (max 12MB)`);
+		}
+		const uploaded = await uploadChatMediaFromFile(file);
+		const dims = await readImageDims(file);
+		const hash = asPublicMediaHash(
+			uploaded.mediaHash || imageHashFromUrl(uploaded.url),
+		);
+		const url =
+			uploaded.url && uploaded.url.startsWith("http")
+				? uploaded.url
+				: `https://cdns.grindr.com/images/thumb/320x320/${hash}`;
+		await onSend({
+			type: "Image",
+			body: {
+				mediaId: uploaded.mediaId,
+				width: dims.width,
+				height: dims.height,
+				url,
+				imageHash: hash,
+				takenOnGrindr: false,
+				createdAt: Date.now(),
+			},
+		});
+	}
+
 	async function onPickImage(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
-		const file = input.files?.[0];
+		const files = Array.from(input.files ?? []);
 		input.value = "";
-		if (!file) return;
-		if (!file.type.startsWith("image/")) {
-			toast.error("Only images are supported");
-			return;
-		}
-		if (file.size > 12 * 1024 * 1024) {
-			toast.error("Image too large (max 12MB)");
-			return;
+		if (files.length === 0) return;
+
+		const batch = files.slice(0, MAX_FILES);
+		if (files.length > MAX_FILES) {
+			toast.message(`Sending first ${MAX_FILES} photos`);
 		}
 
 		uploading = true;
+		let sent = 0;
+		let failed = 0;
 		try {
-			const uploaded = await uploadChatMediaFromFile(file);
-			const dims = await readImageDims(file);
-			const hash = asPublicMediaHash(
-				uploaded.mediaHash || imageHashFromUrl(uploaded.url),
-			);
-			const url =
-				uploaded.url && uploaded.url.startsWith("http")
-					? uploaded.url
-					: `https://cdns.grindr.com/images/thumb/320x320/${hash}`;
-			await onSend({
-				type: "Image",
-				body: {
-					mediaId: uploaded.mediaId,
-					width: dims.width,
-					height: dims.height,
-					url,
-					imageHash: hash,
-					takenOnGrindr: false,
-					createdAt: Date.now(),
-				},
-			});
-			toast.success("Photo sent");
-		} catch (error) {
-			console.error(error);
-			toast.error(
-				error instanceof Error ? error.message.slice(0, 120) : "Upload failed",
-			);
+			for (let i = 0; i < batch.length; i++) {
+				uploadProgress = `${i + 1}/${batch.length}`;
+				try {
+					await sendOneImage(batch[i]!);
+					sent += 1;
+				} catch (error) {
+					console.error(error);
+					failed += 1;
+				}
+			}
+			if (sent > 0 && failed === 0) {
+				toast.success(sent === 1 ? "Photo sent" : `${sent} photos sent`);
+			} else if (sent > 0) {
+				toast.message(`Sent ${sent}, failed ${failed}`);
+			} else {
+				toast.error("Upload failed");
+			}
 		} finally {
 			uploading = false;
+			uploadProgress = "";
 		}
 	}
 
@@ -116,6 +140,7 @@
 		bind:this={fileInput}
 		type="file"
 		accept="image/*"
+		multiple
 		class="hidden"
 		onchange={(e) => void onPickImage(e)}
 	/>
@@ -140,12 +165,15 @@
 			type="button"
 			variant="ghost"
 			size="icon"
-			class="size-9 cursor-pointer p-2"
+			class="size-9 cursor-pointer p-2 relative"
 			disabled={uploading}
 			aria-label="Send photo"
 			onclick={() => fileInput?.click()}
 		>
 			{#if uploading}
+				<span class="absolute -top-1 inset-x-0 text-[9px] text-center text-muted-foreground">
+					{uploadProgress}
+				</span>
 				<SpinnerGap class="size-4.5 animate-spin text-muted-foreground" />
 			{:else}
 				<ImageIcon weight="fill" class="size-4.5 text-muted-foreground" />
