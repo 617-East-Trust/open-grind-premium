@@ -17,10 +17,31 @@ const profilesCache = new Map<
 	number,
 	{ profile: Profile; updatedAt: number }
 >();
-export async function getProfile(profileId: number) {
-	const cached = profilesCache.get(profileId);
-	if (cached && Date.now() - cached.updatedAt < 1000 * 60) {
-		return cached.profile;
+
+/** Drop a single profile from the 60s client cache (pull-to-refresh / edits). */
+export function invalidateProfile(profileId: number): void {
+	profilesCache.delete(profileId);
+}
+
+export function clearProfileCache(profileId?: number): void {
+	if (profileId === undefined) {
+		profilesCache.clear();
+		return;
+	}
+	profilesCache.delete(profileId);
+}
+
+export async function getProfile(
+	profileId: number,
+	options: { force?: boolean } = {},
+) {
+	if (!options.force) {
+		const cached = profilesCache.get(profileId);
+		if (cached && Date.now() - cached.updatedAt < 1000 * 60) {
+			return cached.profile;
+		}
+	} else {
+		profilesCache.delete(profileId);
 	}
 	const profile = (
 		await fetchRest(`/v7/profiles/${profileId}`, {
